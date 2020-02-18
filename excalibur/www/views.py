@@ -19,7 +19,7 @@ from ..utils.file import mkdirs, allowed_filename
 from ..utils.metadata import generate_uuid, random_string
 
 
-views = Blueprint('views', __name__)
+views = Blueprint('views', __name__, url_prefix="/distil")
 
 
 @views.route('/', methods=['GET'])
