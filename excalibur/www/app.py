@@ -1,5 +1,11 @@
-import json
+#!/bin/python3
+# -*- coding: utf-8 -*-
 
+
+import json
+import sys
+from os import path
+sys.path.append( path.dirname( path.dirname( path.abspath(__file__) ) ) )
 from flask import Flask, Blueprint
 from werkzeug.utils import find_modules, import_string
 
@@ -19,3 +25,8 @@ def create_app(config=None):
     app.register_blueprint(views)
     app.jinja_env.filters['pretty'] = to_pretty_json
     return app
+
+myapp = create_app()
+
+if __name__ == "__main__":
+    application.run(host='0.0.0.0')
