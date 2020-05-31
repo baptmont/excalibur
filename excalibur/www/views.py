@@ -22,7 +22,7 @@ from .. import configuration as conf
 from ..executors import get_default_executor
 from ..models import File, Rule, Job
 from ..settings import Session
-from ..utils.file import mkdirs, allowed_filename
+from ..utils.file import mkdirs, allowed_filename, is_image_file, ocr_image
 from ..utils.metadata import generate_uuid, random_string
 
 
@@ -66,6 +66,9 @@ def files():
         mkdirs(filepath)
         filepath = os.path.join(filepath, filename)
         file.save(filepath)
+
+        if( is_image_file(file) ):
+            filepath = ocr_image(filepath )
 
         session = Session()
         f = File(
