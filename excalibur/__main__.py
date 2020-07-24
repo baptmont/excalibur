@@ -7,9 +7,9 @@ __all__ = ("main",)
 
 
 def main():
-    from excalibur.cli import cli
+    from excalibur.cli import webserver
 
-    cli()
+    webserver()
 
 
 if __name__ == "__main__":

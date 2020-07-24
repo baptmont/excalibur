@@ -16,8 +16,9 @@ from flask import (
     request,
     send_from_directory,
     url_for,
-)
+    flash)
 
+from excalibur import queue_listener
 from .. import configuration as conf
 from ..executors import get_default_executor
 from ..models import File, Rule, Job
@@ -57,10 +58,17 @@ def files():
         session.close()
         return render_template("files.html", files_response=files_response)
     file = request.files["file-0"]
+    file_id = create_files(file, request.form["pages"])
+    return jsonify(file_id=file_id)
+
+
+def create_files(file, pages="all"):
+    print(str(file))
+    print(str(file.stream))
+    print(pages)
     if file and allowed_filename(file.filename):
         file_id = generate_uuid()
         uploaded_at = dt.datetime.now()
-        pages = request.form["pages"]
         filename = secure_filename(file.filename)
         filepath = os.path.join(conf.PDFS_FOLDER, file_id)
         mkdirs(filepath)
@@ -83,7 +91,8 @@ def files():
         command_as_list = command.split(" ")
         executor = get_default_executor()
         executor.execute_async(command_as_list)
-    return jsonify(file_id=file_id)
+
+        return file_id
 
 
 @views.route("/workspaces/<string:file_id>", methods=["GET"])
@@ -100,6 +109,7 @@ def workspaces(file_id):
             imagepaths[page] = imagepaths[page].replace(
                 os.path.join(conf.PROJECT_ROOT, "www"), ""
             )
+            imagepaths[page] = imagepaths[page].replace("\\", "/")
         filedims = file.filedims
         imagedims = file.imagedims
         detected_areas = file.detected_areas
@@ -174,18 +184,8 @@ def jobs(job_id):
             session = Session()
             job = session.query(Job).filter(Job.job_id == job_id).first()
             session.close()
+            data = create_data(job)
 
-            data = []
-            render_files = json.loads(job.render_files)
-            regex = "page-(\d)+-table-(\d)+"
-            for k in sorted(
-                render_files,
-                key=lambda x: (int(re.split(regex, x)[1]), int(re.split(regex, x)[2])),
-            ):
-                df = pd.read_json(render_files[k])
-                columns = df.columns.values
-                records = df.to_dict("records")
-                data.append({"title": k, "columns": columns, "records": records})
             return render_template(
                 "job.html",
                 is_finished=job.is_finished,
@@ -193,6 +193,7 @@ def jobs(job_id):
                 finished_at=job.finished_at,
                 datapath=job.datapath,
                 data=data,
+                search=search_page_table,
             )
         jobs_response = []
         session = Session()
@@ -248,6 +249,37 @@ def jobs(job_id):
     return jsonify(job_id=job_id)
 
 
+def create_data(job):
+    data = []
+    render_files = json.loads(job.render_files)
+    regex = "page-(\d)+-table-(\d)+"
+    for k in sorted(render_files, key=lambda x: (int(re.split(regex, x)[1]), int(re.split(regex, x)[2])),):
+        df = pd.read_json(render_files[k])
+        columns = df.columns.values
+        records = df.to_dict("records")
+        data.append({"title": k, "columns": columns, "records": records})
+    return data
+
+
+def search_page_table(string):
+    regex = "page-(\d)+-table-(\d)+"
+    table = re.search(regex, str(string))
+    if table:
+        return str(table.group(0))
+    else:
+        return ""
+
+
+def send_message(job_id, job):
+    data = create_data(job)
+    for item in data:
+        item["type"] = request.form[f'type_{search_page_table(item["title"] )}']
+    message = pd.Series(data).to_json(orient='values')
+    queue_listener.publish(message)
+    flash('Message Sent!')
+    return redirect(f"jobs/{job_id}")
+
+
 @views.route("/download", methods=["POST"])
 def download():
     job_id = request.form["job_id"]
@@ -257,11 +289,15 @@ def download():
     job = session.query(Job).filter(Job.job_id == job_id).first()
     session.close()
 
-    datapath = os.path.join(job.datapath, f.lower())
-    zipfile = glob.glob(os.path.join(datapath, "*.zip"))[0]
+    if f.lower() == "send":
+        return send_message(job_id, job)
+    else:
+        datapath = os.path.join(job.datapath, f.lower())
+        print("path =" + datapath)
+        zipfile = glob.glob(os.path.join(datapath, "*.zip"))[0]
 
-    directory = os.path.join(os.getcwd(), datapath)
-    filename = os.path.basename(zipfile)
-    return send_from_directory(
-        directory=directory, filename=filename, as_attachment=True
-    )
+        directory = os.path.join(os.getcwd(), datapath)
+        filename = os.path.basename(zipfile)
+        return send_from_directory(
+            directory=directory, filename=filename, as_attachment=True
+        )
