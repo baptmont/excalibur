@@ -11,10 +11,12 @@ from io import BytesIO
 
 def get_file_urls(json_body):
     result_set = set()
+    agency_name = ""
     for item in json_body:
         print(f"item  - {item} and set {result_set}")
         result_set = result_set.union(set(item["file_urls"]))
-    return list(result_set)
+        agency_name = item["agency_name"]
+    return list(result_set), agency_name
 
 
 def download_file(file_url):
@@ -28,14 +30,14 @@ def download_file(file_url):
 def items_queue_callback(ch, method, properties, body):
     json_body = json.loads(body)
     print(f"here - {json_body}")
-    file_urls = get_file_urls(json_body)
+    file_urls, agency_name = get_file_urls(json_body)
     print(f"here - {file_urls}")
     if file_urls:
         for url in file_urls:
             file, name = download_file(url)
             print(f"content = {file}")
             content = FileStorage(stream=file, name=name, filename=name, content_type='application/pdf')
-            create_files(content)
+            create_files(content, agency_name=agency_name, url=url)
 
 
 def consume():

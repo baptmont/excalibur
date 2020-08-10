@@ -39,6 +39,7 @@ def index():
 def files():
     if request.method == "GET":
         files_response = []
+        files_checked_response = []
         session = Session()
         for file in session.query(File).order_by(File.uploaded_at.desc()).all():
             job = (
@@ -47,22 +48,24 @@ def files():
                 .order_by(Job.started_at.desc())
                 .first()
             )
-            files_response.append(
-                {
+
+            response = files_checked_response if job is not None else files_response
+            response.append({
                     "file_id": file.file_id,
                     "job_id": job.job_id if job is not None else "",
                     "uploaded_at": file.uploaded_at.strftime("%Y-%m-%dT%H:%M:%S"),
                     "filename": file.filename,
-                }
-            )
+                    "agency_name": file.agency_name,
+                })
         session.close()
-        return render_template("files.html", files_response=files_response)
+        return render_template("files.html", files_response=files_response,
+                               files_checked_response=files_checked_response)
     file = request.files["file-0"]
-    file_id = create_files(file, request.form["pages"])
+    file_id = create_files(file, pages=request.form["pages"])
     return jsonify(file_id=file_id)
 
 
-def create_files(file, pages="all"):
+def create_files(file, pages="all", agency_name="", url=""):
     print(str(file))
     print(str(file.stream))
     print(pages)
@@ -82,6 +85,8 @@ def create_files(file, pages="all"):
             pages=pages,
             filename=filename,
             filepath=filepath,
+            agency_name=agency_name,
+            url=url,
         )
         session.add(f)
         session.commit()
@@ -237,7 +242,8 @@ def jobs(job_id):
     started_at = dt.datetime.now()
 
     session = Session()
-    j = Job(job_id=job_id, started_at=started_at, file_id=file_id, rule_id=rule_id)
+    j = Job(job_id=job_id, started_at=started_at, file_id=file_id, rule_id=rule_id, agency_name=file.agency_name,
+            url=file.url)
     session.add(j)
     session.commit()
     session.close()
@@ -261,9 +267,10 @@ def create_data(job):
     return data
 
 
-def search_page_table(string):
+def search_page_table(value):
+    string = str(value) if value is not None else ""
     regex = "page-(\d)+-table-(\d)+"
-    table = re.search(regex, str(string))
+    table = re.search(regex, string)
     if table:
         return str(table.group(0))
     else:
@@ -273,7 +280,13 @@ def search_page_table(string):
 def send_message(job_id, job):
     data = create_data(job)
     for item in data:
-        item["type"] = request.form[f'type_{search_page_table(item["title"] )}']
+        if request.form[f'name_{search_page_table(item["title"] )}']:
+            item["name"] = request.form[f'name_{search_page_table(item["title"] )}']
+        if request.form.getlist(f'days_{search_page_table(item["title"] )}'):
+            item["days"] = request.form.getlist(f'days_{search_page_table(item["title"] )}')
+        item["pdf_name"] = job.datapath
+        item["agency_name"] = job.agency_name
+        item["url"] = job.url
     message = pd.Series(data).to_json(orient='values')
     queue_listener.publish(message)
     flash('Message Sent!')

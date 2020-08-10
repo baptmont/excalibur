@@ -30,6 +30,8 @@ class File(Base):
     imagepaths = Column(Text)
     filedims = Column(Text)
     imagedims = Column(Text)
+    agency_name = Column(Text)
+    url = Column(Text)
     detected_areas = Column(Text)
 
 
@@ -53,3 +55,5 @@ class Job(Base):
     finished_at = Column(DateTime, default=dt.datetime.now())
     file_id = Column(String(ID_LEN), ForeignKey("files.file_id"))
     rule_id = Column(String(ID_LEN), ForeignKey("rules.rule_id"))
+    agency_name = Column(Text)
+    url = Column(Text)

@@ -56,11 +56,24 @@
                         </tbody>
                       </table>
                     </div>
-                    <select class="form-control" name="type_{{ search(d.title) }}"
-                            id="type_{{ search(d.title) }}">
-                      <option>Table</option>
-                      <option>Title</option>
-                    </select>
+                      <div class="form-group">
+                        <label>Table Name</label>
+                        <input class="form-control" name="name_{{ search(d.title) }}"
+                            id="name_{{ search(d.title) }}"  placeholder="Enter table name">
+                      </div>
+                      <div class="form-group">
+                        <label for="exampleFormControlSelect1">Example select</label>
+                        <select multiple class="form-control" name="days_{{ search(d.title) }}"
+                            id="days_{{ search(d.title) }}">
+                          <option>Monday</option>
+                          <option>Tuesday</option>
+                          <option>Wednesday</option>
+                          <option>Thursday</option>
+                          <option>Friday</option>
+                          <option>Saturday</option>
+                          <option>Sunday</option>
+                        </select>
+                      </div>
                   </div>
               {% endfor %}
           </form>
