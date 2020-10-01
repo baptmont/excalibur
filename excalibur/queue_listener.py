@@ -7,6 +7,7 @@ from excalibur import configuration as conf
 from excalibur.www.views import create_files
 from werkzeug.datastructures import FileStorage
 from io import BytesIO
+import asyncio
 
 
 def get_file_urls(json_body):
@@ -27,17 +28,21 @@ def download_file(file_url):
     return file, name
 
 
+async def download_files(file_urls, agency_name):
+    for url in file_urls:
+        file, name = download_file(url)
+        print(f"content = {file}")
+        content = FileStorage(stream=file, name=name, filename=name, content_type='application/pdf')
+        create_files(content, agency_name=agency_name, url=url)
+
+
 def items_queue_callback(ch, method, properties, body):
     json_body = json.loads(body)
     print(f"here - {json_body}")
     file_urls, agency_name = get_file_urls(json_body)
     print(f"here - {file_urls}")
     if file_urls:
-        for url in file_urls:
-            file, name = download_file(url)
-            print(f"content = {file}")
-            content = FileStorage(stream=file, name=name, filename=name, content_type='application/pdf')
-            create_files(content, agency_name=agency_name, url=url)
+        asyncio.run(download_files(file_urls, agency_name))
 
 
 def consume():
@@ -58,15 +63,15 @@ def publish(message):
     channel.exchange_declare(exchange="excalibur",
                              exchange_type="direct",
                              durable=True)
-    channel.queue_declare(queue="item_scrape",
+    channel.queue_declare(queue="item_queue",
                           durable=True)
     channel.queue_bind(exchange="excalibur",
-                       routing_key="item_scrape",
-                       queue="item_scrape")
+                       routing_key="item",
+                       queue="item_queue")
 
     channel.basic_publish(
         exchange="excalibur",
-        routing_key="item_scrape",
+        routing_key="item",
         body=message,
     )
 
