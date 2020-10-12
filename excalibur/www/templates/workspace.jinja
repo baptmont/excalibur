@@ -14,6 +14,13 @@
       <div class="row pb-4">
         <div class="col-md-12">
           <h2>Workspace - {{ filename }}</h2>
+          {% if same_as is not none %}
+          <h3 style="color: red;">This file was identified as a copy of {{ same_as }}</h3>
+          <form action = "/ignore" method = "POST">
+            <input type="hidden" name="file_id" value="{{ file_id }}">
+            <td style="width:15%"><input type = "submit" value = "Ignore" class="btn btn-sm btn-outline-danger"></td>
+          </form>
+          {% endif %}
         </div>
       </div>
       <div class="row">
@@ -159,7 +166,7 @@
       </div>
     </div>
   {% else %}
-    <meta http-equiv="refresh" content="0.5" >
+    <meta http-equiv="refresh" content="2.0" >
     <div class="container">
       <div class="jumbotron">
         <h1 class="display-4">Processing</h1>

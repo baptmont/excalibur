@@ -59,7 +59,7 @@
                       <div class="form-group">
                         <label>Table Name</label>
                         <input class="form-control" name="name_{{ search(d.title) }}"
-                            id="name_{{ search(d.title) }}"  placeholder="Enter table name">
+                            id="name_{{ search(d.title) }}"  placeholder="Enter table name" value="{{ d.route }}">
                       </div>
                       <div class="form-group">
                         <label for="exampleFormControlSelect1">Example select</label>
@@ -72,6 +72,7 @@
                           <option>Friday</option>
                           <option>Saturday</option>
                           <option>Sunday</option>
+                          <option>Holiday</option>
                         </select>
                       </div>
                   </div>
@@ -81,7 +82,7 @@
     </div>
   </div>
 {% else %}
-  <meta http-equiv="refresh" content="0.5" >
+  <meta http-equiv="refresh" content="2.0" >
   <div class="container">
     <div class="jumbotron">
       <h1 class="display-4">Processing</h1>

@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% set active_page = "files" %}
+{% block stylesheet %}
+{% endblock %}
+
+{% macro render_pdfs_table(file_list) -%}
+    <div class="card depth-1 mb-5">
+    <div class="card-body p-0">
+        <div class="row">
+            <div class="col-md-12">
+                <table class="table text-left table-borderless table-hover mb-0">
+                  <thead class="thead-light">
+                    <tr>
+                      <th scope="col">#</th>
+                      <th scope="col">Agency</th>
+                      <th scope="col">Filename</th>
+                      <th scope="col">Uploaded at</th>
+                      <th scope="col">Not a Duplicate</th>
+                      <th scope="col">&nbsp</th>
+                      <th scope="col">&nbsp</th>
+                    </tr>
+                  </thead>
+                  <tbody id="filtertable">
+                    {% if file_list|length > 0 %}
+                      {% for file in file_list %}
+                        <tr>
+                          <th style="width:5%" scope="row">{{ loop.index }}</th>
+                          <td style="width:10%">{{ file.agency_name }}</td>
+                          <td style="width:30%">{{ file.filename }}</td>
+                          <td style="width:20">{{ file.uploaded_at }}</td>
+                          <td style="width:15%">
+                          {% if file.same_as is not none %}
+                            &#x274C
+                          {% else %}
+                            &#x2714
+                          {% endif %}
+                          </td>
+                          {{ caller(file) }}
+                        </tr>
+                      {% endfor %}
+                    {% else %}
+                      <tr>
+                        <td colspan="5" style="text-align: center">No files uploaded.</td>
+                      </tr>
+                    {% endif %}
+                  </tbody>
+                </table>
+            </div>
+          </div>
+    </div>
+  </div>
+{%- endmacro %}
+
+{% block files %}
+<div class="container">
+  <div class="row mb-4 border-bottom mb-5">
+    <div class="col-md-12 text-center">
+        <h1 class="display-4 align-items-center d-flex justify-content-center">
+            <img src="https://excalibur-py.readthedocs.io/en/master/_static/excalibur-logo.png" class="img-responsive" width="40" height="auto" alt="Excalibur">
+            <span>Excalibur</span>
+        </h1>
+        <p class="lead">A web application to extract tabular data from PDFs</p>
+    </div>
+  </div>
+
+  <form class="mb-5">
+    <div class="row align-items-center">
+      <div class="col-md-6 col-sm-6 col-xs-12">
+        <div class="input-group">
+          <div class="custom-file uploadFile">
+            <input type="file" class="uploadFile__input" id="file" name="file" accept="application/pdf">
+            <label for="file" class="uploadFile__label">Upload PDF</label>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6 col-sm-6 col-xs-12 py-2">
+        <label for="pages">Page numbers (example inputs: 1,3 or 5-8 or 1-end or all)</label>
+        <div class="input-group">
+          <input type="text" class="form-control" id="pages" placeholder="Comma-separated page numbers to extract tables from." value="all">
+          <div class="input-group-append">
+            <button type="button" id="upload" class="btn btn-outline-secondary">Upload</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
+
+  <form class="form-inline d-flex justify-content-center md-form form-sm active-cyan-2 mt-2">
+    <input class="form-control form-control-sm mr-3 w-75" type="text" placeholder="Search"
+      aria-label="Search" id="search">
+    <i class="fas fa-search" aria-hidden="true"></i>
+  </form>
+  <h5 class="card-title py-3 mb-0 text-dark font-weight-bold">Files uploaded</h5>
+
+  {% call(file) render_pdfs_table(files_response) %}
+    <td style="width:10%"><a href="/workspaces/{{ file.file_id }}" class="btn btn-sm btn-outline-success" role="button">Extract</a></td>
+    {% if not file.job_id %}
+      <form action = "/ignore" method = "POST">
+        <input type="hidden" name="file_id" value="{{ file.file_id }}">
+        <td style="width:10%"><input type = "submit" value = "Ignore" class="btn btn-sm btn-outline-danger"></td>
+      </form>
+    {% else %}
+      <td style="width:10%"><button class="btn btn-sm btn-outline-danger" disabled><a>Ignore</a></button></td>
+    {% endif %}
+  {% endcall %}
+
+  <h5 class="card-title py-3 mb-0 text-dark font-weight-bold">Files extracted</h5>
+
+  {% call(file) render_pdfs_table(files_checked_response) %}
+    <td style="width:10%"><a href="/workspaces/{{ file.file_id }}" class="btn btn-sm btn-outline-success" role="button">Extract Again</a></td>
+    {% if file.job_id %}
+      <td style="width:10%"><a href="/jobs/{{ file.job_id }}" class="btn btn-sm btn-outline-primary" role="button">Download</a></td>
+    {% else %}
+      <td style="width:10%"><button class="btn btn-sm btn-outline-primary" disabled><a>Download</a></button></td>
+    {% endif %}
+  {% endcall %}
+
+  <h5 class="card-title py-3 mb-0 text-dark font-weight-bold">Files ignored</h5>
+
+  {% call(file) render_pdfs_table(files_ignored_response) %}
+    <td style="width:10%"></td>
+    <form action = "/unignore" method = "POST">
+      <input type="hidden" name="file_id" value="{{ file.file_id }}">
+      <td style="width:10%"><input type = "submit" value = "Reaccept" class="btn btn-sm btn-outline-dark"></td>
+    </form>
+  {% endcall %}
+
+</div>
+{% endblock %}
+
+{% block javascript %}
+<script type="text/javascript" src="{{ url_for('static', filename='js/files.js') }}"></script>
+{% endblock %}
