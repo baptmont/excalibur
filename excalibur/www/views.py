@@ -26,6 +26,7 @@ from ..models import File, Rule, Job
 from ..settings import Session
 from ..utils.file import mkdirs, allowed_filename
 from ..utils.metadata import generate_uuid, random_string
+from . import data_frame_utils
 
 
 views = Blueprint("views", __name__)
@@ -269,47 +270,13 @@ def create_data(job):
     regex = r"page-(\d)+-table-(\d)+"
     for k in sorted(render_files, key=lambda x: (int(re.split(regex, x)[1]), int(re.split(regex, x)[2])),):
         df = pd.read_json(render_files[k])
-        df = clean_data(df)
+        df = data_frame_utils.clean_data(df)
+        df = data_frame_utils.order_data(df)
         columns = df.columns.values
         records = df.to_dict("records")
-        route = '{} - {}'.format(*get_origin_and_destination(records))
+        route = '{} - {}'.format(*data_frame_utils.get_origin_and_destination(records))
         data.append({"title": k, "columns": columns, "records": records, "route": route})
     return data
-
-ignore_words = ["[Pp]artidas?", "[Pp]assage(m|ns)", "[Cc]hegadas?","DESIGNAÇÃO","designação"]
-stop_time_regex = re.compile(r'\d{1,2}(:|,)[0-5]\d')
-
-def split_rows(df_series):
-    series = df_series.str.strip().str.split('\\n', expand=True).stack().str.strip().reset_index(drop=True)
-    return series
-
-def clean_data(df):
-    word_regex = f"({'|'.join(ignore_words)})"
-    ignore_words_dict = {word:'' for word in ignore_words}
-    df = df.replace(ignore_words_dict, regex=True)
-    try:
-        df = pd.concat([split_rows(df[col]) for col in df], axis=1)
-        df = df.replace({"":pd.NaT})
-    except Exception as e:
-        print(e)
-    df.dropna(how='all',inplace=True, axis='index')
-    df.dropna(how='all',inplace=True, axis='columns')
-    print(df.to_string())
-    # df = df.apply(lambda x: split_rows(x,df), axis=0)
-    return df
-
-def get_origin_and_destination(records):
-    origin = ("",-1,-1)
-    destination = ("",-1,-1)
-    for col_id, column in enumerate(records):
-        for row_id, item in enumerate(column.values()):
-            if re.match(r"[a-zA-Z]{3,}", str(item)):
-                if (origin[1] >= row_id and origin[2] >= col_id) or (origin[1] == -1 and origin[2] == -1):
-                    origin = (item, row_id, col_id)
-                if (destination[1] <= row_id and destination[2] <= col_id) or (destination[1] == -1 and destination[2] == -1):
-                    destination = (item, row_id, col_id)
-    return origin[0] , destination[0]
-
 
 def search_page_table(value):
     string = str(value) if value is not None else ""
