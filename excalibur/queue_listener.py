@@ -23,7 +23,6 @@ def get_file_urls(json_body):
 def download_file(file_url):
     name = file_url.split("/")[-1]
     request = requests.get(file_url)
-    print(f"here - {request.content}")
     file = BytesIO(request.content)
     return file, name
 
@@ -31,7 +30,6 @@ def download_file(file_url):
 async def download_files(file_urls, agency_name):
     for url in file_urls:
         file, name = download_file(url)
-        print(f"content = {file}")
         content = FileStorage(stream=file, name=name, filename=name, content_type='application/pdf')
         create_files(content, agency_name=agency_name, url=url)
 

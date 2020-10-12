@@ -6,6 +6,7 @@ from threading import Thread
 import click
 
 from . import queue_listener
+from .duplicate_handling import handle_duplicate_pdfs
 from . import __version__, settings
 from . import configuration as conf
 from .operators.python_operator import PythonOperator
@@ -59,8 +60,10 @@ def webserver(*args, **kwargs):
 
     process = Thread(target=app.run, kwargs=app_args)
     process2 = Thread(target=queue_listener.consume, args=())
+    process3 = Thread(target=handle_duplicate_pdfs, args=())
     process.start()
-    process2.run()
+    process2.start()
+    process3.start()
 
 
 @cli.command("worker")

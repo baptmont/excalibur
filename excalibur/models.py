@@ -32,6 +32,9 @@ class File(Base):
     imagedims = Column(Text)
     agency_name = Column(Text)
     url = Column(Text)
+    is_ignored = Column(Boolean)
+    deleted_folder = Column(Boolean)
+    same_as = Column(String(ID_LEN))
     detected_areas = Column(Text)
 
 

@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 
 import os
+import re
 import glob
 import json
 import logging
 import subprocess
 import datetime as dt
+from PIL import Image, ImageChops
 
 import camelot
 from camelot.core import TableList
@@ -84,22 +86,68 @@ def split(file_id):
 
             detected_areas[page] = {"lattice": lattice_areas, "stream": stream_areas}
 
-        file.extract_pages = json.dumps(extract_pages)
-        file.total_pages = total_pages
-        file.has_image = True
-        file.filenames = json.dumps(filenames)
-        file.filepaths = json.dumps(filepaths)
-        file.imagenames = json.dumps(imagenames)
-        file.imagepaths = json.dumps(imagepaths)
-        file.filedims = json.dumps(filedims)
-        file.imagedims = json.dumps(imagedims)
-        file.detected_areas = json.dumps(detected_areas)
-
-        session.commit()
-        session.close()
+        file_is_new = True
+        same_as = None
+        for old_file in session.query(File).filter(File.file_id != file_id, File.filename == file.filename, File.same_as == None) :
+            file_is_new = file_is_new and iterate_paths(imagepaths, old_file)
+            same_as = same_as if file_is_new else old_file
+        if file_is_new :
+            file.extract_pages = json.dumps(extract_pages)
+            file.total_pages = total_pages
+            file.has_image = True
+            file.filenames = json.dumps(filenames)
+            file.filepaths = json.dumps(filepaths)
+            file.imagenames = json.dumps(imagenames)
+            file.imagepaths = json.dumps(imagepaths)
+            file.filedims = json.dumps(filedims)
+            file.imagedims = json.dumps(imagedims)
+            file.detected_areas = json.dumps(detected_areas)
+            file.same_as = None
+            file.deleted_folder = False
+            session.commit()
+            session.close()
+        else :
+            clone_old_file(file, same_as)
+            session.commit()
+            session.close()
+        
     except Exception as e:
         logging.exception(e)
 
+def get_file_name_from_path(path):
+    return re.split("(\\\\|/)", path)[-1]
+
+def iterate_paths(imagepaths, old_file):
+    for path1 in imagepaths.values():
+        print(old_file.imagepaths)
+        if old_file.imagepaths is None: return True
+        path2 = [path for path in json.loads(old_file.imagepaths).values() if get_file_name_from_path(path) == get_file_name_from_path(path1)]
+        if path2:
+            if check_images_are_equal(path1, path2[0]): return False
+        else: return True
+    return True
+
+def check_images_are_equal(imagePath1, imagePath2):
+    im1 = Image.open(imagePath1)
+    im2 = Image.open(imagePath2)
+    imDiff = ImageChops.difference(im1, im2)
+    imDiff.save("diff.png")
+    return True if imDiff.getbbox() == None else False
+
+def clone_old_file(file, old_file):
+    file.extract_pages = old_file.extract_pages
+    file.total_pages = old_file.total_pages
+    file.has_image = True
+    file.filenames = old_file.filenames
+    file.filepaths = old_file.filepaths
+    file.imagenames = old_file.imagenames
+    file.imagepaths = old_file.imagepaths
+    file.filedims = old_file.filedims
+    file.imagedims = old_file.imagedims
+    file.detected_areas = old_file.detected_areas
+    file.same_as = old_file.file_id
+    file.is_ignored = True
+    file.deleted_folder = False
 
 def extract(job_id):
     try:

@@ -4,6 +4,7 @@ import os
 import re
 import glob
 import json
+import threading
 import datetime as dt
 
 import pandas as pd
@@ -40,6 +41,7 @@ def files():
     if request.method == "GET":
         files_response = []
         files_checked_response = []
+        files_ignored_response = []
         session = Session()
         for file in session.query(File).order_by(File.uploaded_at.desc()).all():
             job = (
@@ -49,17 +51,20 @@ def files():
                 .first()
             )
 
-            response = files_checked_response if job is not None else files_response
+            response = files_ignored_response if file.is_ignored else files_checked_response if job is not None else files_response
             response.append({
                     "file_id": file.file_id,
                     "job_id": job.job_id if job is not None else "",
                     "uploaded_at": file.uploaded_at.strftime("%Y-%m-%dT%H:%M:%S"),
                     "filename": file.filename,
                     "agency_name": file.agency_name,
+                    "same_as" : file.same_as,
                 })
         session.close()
-        return render_template("files.html", files_response=files_response,
-                               files_checked_response=files_checked_response)
+        return render_template("files.jinja", files_response=files_response,
+                               files_checked_response=files_checked_response,
+                               files_ignored_response=files_ignored_response)
+    print(f"here with {request}")
     file = request.files["file-0"]
     file_id = create_files(file, pages=request.form["pages"])
     return jsonify(file_id=file_id)
@@ -67,7 +72,6 @@ def files():
 
 def create_files(file, pages="all", agency_name="", url=""):
     print(str(file))
-    print(str(file.stream))
     print(pages)
     if file and allowed_filename(file.filename):
         file_id = generate_uuid()
@@ -76,6 +80,7 @@ def create_files(file, pages="all", agency_name="", url=""):
         filepath = os.path.join(conf.PDFS_FOLDER, file_id)
         mkdirs(filepath)
         filepath = os.path.join(filepath, filename)
+        print(f"Path {filepath}")
         file.save(filepath)
 
         session = Session()
@@ -87,6 +92,7 @@ def create_files(file, pages="all", agency_name="", url=""):
             filepath=filepath,
             agency_name=agency_name,
             url=url,
+            is_ignored = False,
         )
         session.add(f)
         session.commit()
@@ -110,6 +116,7 @@ def workspaces(file_id):
     filedims, imagedims, detected_areas = ("null" for i in range(3))
     if file.has_image:
         imagepaths = json.loads(file.imagepaths)
+        print(imagepaths)
         for page in imagepaths:
             imagepaths[page] = imagepaths[page].replace(
                 os.path.join(conf.PROJECT_ROOT, "www"), ""
@@ -122,15 +129,16 @@ def workspaces(file_id):
             {"rule_id": rule.rule_id, "rule_name": rule.rule_name} for rule in rules
         ]
     return render_template(
-        "workspace.html",
+        "workspace.jinja",
         filename=file.filename,
         imagepaths=imagepaths,
         filedims=filedims,
         imagedims=imagedims,
         detected_areas=detected_areas,
         saved_rules=saved_rules,
+        same_as = file.same_as,
+        file_id = file_id,
     )
-
 
 @views.route("/rules", methods=["GET", "POST"], defaults={"rule_id": None})
 @views.route("/rules/<string:rule_id>", methods=["GET"])
@@ -158,7 +166,7 @@ def rules(rule_id):
             }
             for rule in rules
         ]
-        return render_template("rules.html", saved_rules=saved_rules)
+        return render_template("rules.jinja", saved_rules=saved_rules)
     message = "Rule invalid"
     file = request.files["file-0"]
     if file and allowed_filename(file.filename):
@@ -192,7 +200,7 @@ def jobs(job_id):
             data = create_data(job)
 
             return render_template(
-                "job.html",
+                "job.jinja",
                 is_finished=job.is_finished,
                 started_at=job.started_at,
                 finished_at=job.finished_at,
@@ -213,7 +221,7 @@ def jobs(job_id):
                 }
             )
         session.close()
-        return render_template("jobs.html", jobs_response=jobs_response)
+        return render_template("jobs.jinja", jobs_response=jobs_response)
     file_id = request.form["file_id"]
     rule_id = request.form["rule_id"]
 
@@ -258,18 +266,51 @@ def jobs(job_id):
 def create_data(job):
     data = []
     render_files = json.loads(job.render_files)
-    regex = "page-(\d)+-table-(\d)+"
+    regex = r"page-(\d)+-table-(\d)+"
     for k in sorted(render_files, key=lambda x: (int(re.split(regex, x)[1]), int(re.split(regex, x)[2])),):
         df = pd.read_json(render_files[k])
+        df.replace
         columns = df.columns.values
+        df = clean_data(df)
         records = df.to_dict("records")
-        data.append({"title": k, "columns": columns, "records": records})
+        route = '{} - {}'.format(*get_origin_and_destination(records))
+        data.append({"title": k, "columns": columns, "records": records, "route": route})
     return data
+
+ignore_words = ["[Pp]artidas?", "[Pp]assage(m|ns)", "[Cc]hegadas?"]
+stop_time_regex = re.compile(r'\d{1,2}(:|,)[0-5]\d')
+
+def split_rows(df_series):
+    series = df_series.str.strip().str.split('\\n', expand=True).stack().str.strip().reset_index(level=1, drop=True)
+    return series
+
+def clean_data(df):
+    word_regex = f"({'|'.join(ignore_words)})"
+    ignore_words_dict = {word:'' for word in ignore_words}
+    df = df.replace(ignore_words_dict, regex=True)
+    try:
+        df = pd.concat([split_rows(df[col]) for col in df], axis=1)
+    except Exception as e:
+        print(e)
+    # df = df.apply(lambda x: split_rows(x,df), axis=0)
+    return df
+
+def get_origin_and_destination(records):
+    origin = ("",-1,-1)
+    destination = ("",-1,-1)
+    for col_id, column in enumerate(records):
+        for row_id, item in enumerate(column.values()):
+            if re.match(r"[a-zA-Z]{3,}", str(item)):
+                if (origin[1] >= row_id and origin[2] >= col_id) or (origin[1] == -1 and origin[2] == -1):
+                    origin = (item, row_id, col_id)
+                if (destination[1] <= row_id and destination[2] <= col_id) or (destination[1] == -1 and destination[2] == -1):
+                    destination = (item, row_id, col_id)
+    return origin[0] , destination[0]
 
 
 def search_page_table(value):
     string = str(value) if value is not None else ""
-    regex = "page-(\d)+-table-(\d)+"
+    regex = r"page-(\d)+-table-(\d)+"
     table = re.search(regex, string)
     if table:
         return str(table.group(0))
@@ -314,3 +355,23 @@ def download():
         return send_from_directory(
             directory=directory, filename=filename, as_attachment=True
         )
+
+@views.route("/ignore", methods=["POST"])
+def ignore():
+    file_id = request.form["file_id"]
+    session = Session()
+    file = session.query(File).get(file_id)
+    file.is_ignored = True
+    session.commit()
+    session.close()
+    return redirect(f"files")
+
+@views.route("/unignore", methods=["POST"])
+def unignore():
+    file_id = request.form["file_id"]
+    session = Session()
+    file = session.query(File).get(file_id)
+    file.is_ignored = False
+    session.commit()
+    session.close()
+    return redirect(f"files")
