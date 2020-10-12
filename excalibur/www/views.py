@@ -269,19 +269,18 @@ def create_data(job):
     regex = r"page-(\d)+-table-(\d)+"
     for k in sorted(render_files, key=lambda x: (int(re.split(regex, x)[1]), int(re.split(regex, x)[2])),):
         df = pd.read_json(render_files[k])
-        df.replace
-        columns = df.columns.values
         df = clean_data(df)
+        columns = df.columns.values
         records = df.to_dict("records")
         route = '{} - {}'.format(*get_origin_and_destination(records))
         data.append({"title": k, "columns": columns, "records": records, "route": route})
     return data
 
-ignore_words = ["[Pp]artidas?", "[Pp]assage(m|ns)", "[Cc]hegadas?"]
+ignore_words = ["[Pp]artidas?", "[Pp]assage(m|ns)", "[Cc]hegadas?","DESIGNAÇÃO","designação"]
 stop_time_regex = re.compile(r'\d{1,2}(:|,)[0-5]\d')
 
 def split_rows(df_series):
-    series = df_series.str.strip().str.split('\\n', expand=True).stack().str.strip().reset_index(level=1, drop=True)
+    series = df_series.str.strip().str.split('\\n', expand=True).stack().str.strip().reset_index(drop=True)
     return series
 
 def clean_data(df):
@@ -290,8 +289,12 @@ def clean_data(df):
     df = df.replace(ignore_words_dict, regex=True)
     try:
         df = pd.concat([split_rows(df[col]) for col in df], axis=1)
+        df = df.replace({"":pd.NaT})
     except Exception as e:
         print(e)
+    df.dropna(how='all',inplace=True, axis='index')
+    df.dropna(how='all',inplace=True, axis='columns')
+    print(df.to_string())
     # df = df.apply(lambda x: split_rows(x,df), axis=0)
     return df
 
