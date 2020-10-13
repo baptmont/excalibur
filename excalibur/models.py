@@ -60,3 +60,11 @@ class Job(Base):
     rule_id = Column(String(ID_LEN), ForeignKey("rules.rule_id"))
     agency_name = Column(Text)
     url = Column(Text)
+
+class Table(Base):
+    __tablename__ = "tables"
+
+    table_id = Column(String(ID_LEN), primary_key=True)
+    table_name = Column(String(STR_LEN))
+    reverse = Column(Boolean, default=False)
+    job_id = Column(String(ID_LEN), ForeignKey("jobs.job_id"))

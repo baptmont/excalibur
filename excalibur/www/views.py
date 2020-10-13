@@ -22,7 +22,7 @@ from flask import (
 from excalibur import queue_listener
 from .. import configuration as conf
 from ..executors import get_default_executor
-from ..models import File, Rule, Job
+from ..models import File, Rule, Job, Table
 from ..settings import Session
 from ..utils.file import mkdirs, allowed_filename
 from ..utils.metadata import generate_uuid, random_string
@@ -208,6 +208,7 @@ def jobs(job_id):
                 datapath=job.datapath,
                 data=data,
                 search=search_page_table,
+                job_id=job_id,
             )
         jobs_response = []
         session = Session()
@@ -271,12 +272,24 @@ def create_data(job):
     for k in sorted(render_files, key=lambda x: (int(re.split(regex, x)[1]), int(re.split(regex, x)[2])),):
         df = pd.read_json(render_files[k])
         df = data_frame_utils.clean_data(df)
-        df = data_frame_utils.order_data(df)
+        df = data_frame_utils.sort_data(df)
+        if table_is_reversed(k, job.job_id):
+            print("THISS")
+            df = data_frame_utils.reverse_data(df)
         columns = df.columns.values
         records = df.to_dict("records")
         route = '{} - {}'.format(*data_frame_utils.get_origin_and_destination(records))
         data.append({"title": k, "columns": columns, "records": records, "route": route})
     return data
+
+
+def table_is_reversed(table_title, job_id):
+    table_name = search_page_table(table_title)
+    session = Session()
+    table = session.query(Table).filter(Table.job_id == job_id, Table.table_name == table_name).first()
+    session.close()
+    return False if not table else table.reverse
+
 
 def search_page_table(value):
     string = str(value) if value is not None else ""
@@ -345,3 +358,24 @@ def unignore():
     session.commit()
     session.close()
     return redirect(f"files")
+
+@views.route("/job/<string:job_id>/table/<string:table_name>/reverse", methods=["POST"])
+def reverse(job_id, table_name):
+    session = Session()
+    table = session.query(Table).filter(Table.job_id == job_id, Table.table_name == table_name).first()
+    if table:
+        table.reverse = not table.reverse
+        print(table)
+    else : 
+        t = Table(
+            table_id=generate_uuid(),
+            table_name=table_name,
+            reverse=True,
+            job_id=job_id,
+        )
+        session.add(t)
+        flash(f'Table {table_name} Reversed! {t.reverse}')
+        print(t)
+    session.commit()
+    session.close()
+    return redirect(url_for('.jobs', job_id=job_id))

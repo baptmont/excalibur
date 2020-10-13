@@ -3,6 +3,7 @@ import re
 
 ignore_words = ["[Pp]artidas?", "[Pp]assage(m|ns)", "[Cc]hegadas?","DESIGNAÇÃO","designação"]
 stop_time_regex = re.compile(r'\d{1,2}(:|,)[0-5]\d')
+stop_regex = re.compile(r"[a-zA-Z]{3,}")
 
 def split_rows(df_series):
     series = df_series.str.strip().str.split('\\n', expand=True).stack().str.strip().reset_index(drop=True)
@@ -19,15 +20,24 @@ def clean_data(df):
         print(e)
     df.dropna(how='all',inplace=True, axis='index')
     df.dropna(how='all',inplace=True, axis='columns')
-    print(df.to_string())
     # df = df.apply(lambda x: split_rows(x,df), axis=0)
     return df
 
-def order_data(df):
+def sort_data(df):
     cols = df.columns[(df != df.replace(stop_time_regex, '', regex=True)).all()]
     print("cols "+str(cols))
-    if not cols.empty:
+    if not cols.empty: #sort rows
         df = df.sort_values(by=list(cols))
+    else: #sort columns
+        df = df
+    return df
+
+def reverse_data(df):
+    cols = df.columns[(df != df.replace(stop_regex, '', regex=True)).all()]
+    if cols.empty: # reverse columns
+        df = df.iloc[:, ::-1]
+    else: # reverse rows
+        df = df.iloc[::-1]
     return df
 
 def get_origin_and_destination(records):
@@ -35,7 +45,7 @@ def get_origin_and_destination(records):
     destination = ("",-1,-1)
     for col_id, column in enumerate(records):
         for row_id, item in enumerate(column.values()):
-            if re.match(r"[a-zA-Z]{3,}", str(item)):
+            if re.match(stop_regex, str(item)):
                 if (origin[1] >= row_id and origin[2] >= col_id) or (origin[1] == -1 and origin[2] == -1):
                     origin = (item, row_id, col_id)
                 if (destination[1] <= row_id and destination[2] <= col_id) or (destination[1] == -1 and destination[2] == -1):
