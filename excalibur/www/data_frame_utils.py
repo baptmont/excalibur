@@ -1,7 +1,7 @@
 import pandas as pd
 import re
 
-ignore_words = ["[Pp]artidas?", "[Pp]assage(m|ns)", "[Cc]hegadas?","DESIGNAÇÃO","designação"]
+ignore_words = ["[Pp]artidas?", "[Pp]assage(m|ns)", "[Cc]hegadas?","DESIGNAÇÃO","designação","\(percurso sem paragen\)"]
 stop_time_regex = re.compile(r'\d{1,2}(:|,)[0-5]\d')
 stop_regex = re.compile(r"[a-zA-Z]{3,}")
 

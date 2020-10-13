@@ -10,6 +10,7 @@ import datetime as dt
 from PIL import Image, ImageChops
 
 import camelot
+import shutil
 from camelot.core import TableList
 from camelot.parsers import Lattice, Stream
 from camelot.ext.ghostscript import Ghostscript
@@ -149,12 +150,20 @@ def clone_old_file(file, old_file):
     file.is_ignored = True
     file.deleted_folder = False
 
+
+def delete_older_data(file):
+    datapath = os.path.dirname(file.filepath)
+    jsonpath = os.path.join(datapath, "json")
+    shutil.rmtree(jsonpath)
+
+
 def extract(job_id):
     try:
         session = Session()
         job = session.query(Job).filter(Job.job_id == job_id).first()
         rule = session.query(Rule).filter(Rule.rule_id == job.rule_id).first()
         file = session.query(File).filter(File.file_id == job.file_id).first()
+        # delete_older_data(file)
 
         rule_options = json.loads(rule.rule_options)
         flavor = rule_options.pop("flavor")
@@ -176,6 +185,7 @@ def extract(job_id):
 
         froot, fext = os.path.splitext(file.filename)
         datapath = os.path.dirname(file.filepath)
+        datapath = os.path.join(datapath, job_id)
         for f in ["csv", "excel", "json", "html"]:
             f_datapath = os.path.join(datapath, f)
             mkdirs(f_datapath)

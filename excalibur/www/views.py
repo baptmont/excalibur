@@ -274,7 +274,6 @@ def create_data(job):
         df = data_frame_utils.clean_data(df)
         df = data_frame_utils.sort_data(df)
         if table_is_reversed(k, job.job_id):
-            print("THISS")
             df = data_frame_utils.reverse_data(df)
         columns = df.columns.values
         records = df.to_dict("records")
@@ -365,7 +364,6 @@ def reverse(job_id, table_name):
     table = session.query(Table).filter(Table.job_id == job_id, Table.table_name == table_name).first()
     if table:
         table.reverse = not table.reverse
-        print(table)
     else : 
         t = Table(
             table_id=generate_uuid(),
@@ -374,8 +372,7 @@ def reverse(job_id, table_name):
             job_id=job_id,
         )
         session.add(t)
-        flash(f'Table {table_name} Reversed! {t.reverse}')
-        print(t)
     session.commit()
     session.close()
+    flash(f'Table {table_name} Reversed!')
     return redirect(url_for('.jobs', job_id=job_id))
