@@ -24,7 +24,7 @@ from .. import configuration as conf
 from ..executors import get_default_executor
 from ..models import File, Rule, Job, Table
 from ..settings import Session
-from ..utils.file import mkdirs, allowed_filename
+from ..utils.file import mkdirs, allowed_filename, is_image_file, ocr_image
 from ..utils.metadata import generate_uuid, random_string
 from . import data_frame_utils
 
@@ -83,6 +83,9 @@ def create_files(file, pages="all", agency_name="", url=""):
         filepath = os.path.join(filepath, filename)
         print(f"Path {filepath}")
         file.save(filepath)
+
+        if( is_image_file(file) ):
+            filepath = ocr_image(filepath )
 
         session = Session()
         f = File(
