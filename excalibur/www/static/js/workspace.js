@@ -170,7 +170,7 @@ const getRuleOptions = function () {
   ruleOptions['flavor'] = flavor;
 
   if (flavor === null) {
-    alert('Please select a Flavor from Advanced.')
+    throw 'Please select a Flavor from Advanced.'
   } else {
     // advanced settings
     switch(flavor.toString().toLowerCase()) {
@@ -306,25 +306,30 @@ const onFlavorChange = function () {
 const startJob = function () {
   let ruleOptions = {};
   const loc = window.location.pathname.split('/');
-  if (!globalRuleId) {
-    ruleOptions = getRuleOptions();
-  }
-  $.ajax({
-    url: '/jobs',
-    data: {
-      file_id: loc[loc.length - 1],
-      rule_id: globalRuleId,
-      rule_options: JSON.stringify(ruleOptions)
-    },
-    type: 'POST',
-    success: function (data) {
-      const redirectUrl = '{0}//{1}/jobs/{2}'.format(window.location.protocol, window.location.host, data['job_id']);
-      window.location.replace(redirectUrl);
-    },
-    error: function (error) {
-      console.error(error);
+  try {
+    if (!globalRuleId) {
+      ruleOptions = getRuleOptions();
     }
-  });
+    $.ajax({
+      url: '/jobs',
+      data: {
+        file_id: loc[loc.length - 1],
+        rule_id: globalRuleId,
+        rule_options: JSON.stringify(ruleOptions)
+      },
+      type: 'POST',
+      success: function (data) {
+        const redirectUrl = '{0}//{1}/jobs/{2}'.format(window.location.protocol, window.location.host, data['job_id']);
+        window.location.replace(redirectUrl);
+      },
+      error: function (error) {
+        console.error(error);
+      }
+    });
+  }
+  catch(err) {
+    alert(err)
+  }
 }
 
 const debugQtyAreas = function (event, id, areas) {
