@@ -1,6 +1,7 @@
 import os
 
 from .. import configuration as conf
+from ..executors import get_default_executor
 from subprocess import run
 
 
@@ -25,6 +26,9 @@ def is_image_file(file):
 
 
 def ocr_image(filename):
+    # TODO change tesseract config to a config file
+    print("ocr" + filename)
+    filename = filename.replace("\\", "/")
     outfile = '{}.pdf'.format(filename)
     args = [
         "tesseract",
@@ -32,7 +36,12 @@ def ocr_image(filename):
         filename,
         "-c", "textord_tablefind_recognize_tables=1",
         "-c", "tessedit_create_pdf=1",
-        os.path.join(conf.EXCALIBUR_HOME, "tesseract.config")
+        "-c", "tessedit_load_sublangs=por+eng",
+        "-c", "tessedit_ocr_engine_mode=1",
+        "-c", "pageseg_devanagari_split_strategy=0",
         ]
-    run(args)
+    print (" ".join(args))
+
+    executor = get_default_executor()
+    executor.execute_async(args)
     return outfile

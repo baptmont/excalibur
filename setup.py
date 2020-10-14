@@ -20,6 +20,9 @@ requires = [
     "Flask>=1.0.2",
     "SQLAlchemy>=1.2.12",
     "Werkzeug<1.0.0",
+    "pika>=1.1.0",
+    "requests>=2.23.0",
+    "Pillow>=6.2.1"
 ]
 mysql = ["mysqlclient>=1.3.6"]
 all_requires = requires + mysql
