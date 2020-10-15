@@ -1,7 +1,7 @@
 import pandas as pd
 import re
 
-ignore_words = ["[Pp]artidas?", "[Pp]assage(m|ns)", "[Cc]hegadas?","DESIGNAÇÃO","designação","\(percurso sem paragen\)"]
+ignore_words = ["[Pp]artidas?", "[Pp]assage(m|ns)", "[Cc]hegadas?","DESIGNAÇÃO","designação","\(percurso sem parage(m|ns)\)"]
 stop_time_regex = re.compile(r'\d{1,2}(:|,)[0-5]\d')
 stop_regex = re.compile(r"[a-zA-Z]{3,}")
 
@@ -20,6 +20,7 @@ def clean_data(df):
         print(e)
     df.dropna(how='all',inplace=True, axis='index')
     df.dropna(how='all',inplace=True, axis='columns')
+    df = df.replace({pd.NaT:""})
     # df = df.apply(lambda x: split_rows(x,df), axis=0)
     return df
 
@@ -29,7 +30,7 @@ def sort_data(df):
     if not cols.empty: #sort rows
         df = df.sort_values(by=list(cols))
     else: #sort columns
-        df = df
+        df = df # TODO sort columns
     return df
 
 def reverse_data(df):

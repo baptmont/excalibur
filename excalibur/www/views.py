@@ -26,8 +26,7 @@ from ..models import File, Rule, Job, Table
 from ..settings import Session
 from ..utils.file import mkdirs, allowed_filename, is_image_file, ocr_image
 from ..utils.metadata import generate_uuid, random_string
-from . import data_frame_utils
-
+from ..utils import data_frame_utils
 
 views = Blueprint("views", __name__)
 

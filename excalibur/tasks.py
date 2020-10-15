@@ -14,6 +14,7 @@ import shutil
 from camelot.core import TableList
 from camelot.parsers import Lattice, Stream
 from camelot.ext.ghostscript import Ghostscript
+from .queue_listener import publish_new_file_message
 
 from . import configuration as conf
 from .models import File, Rule, Job
@@ -107,6 +108,7 @@ def split(file_id):
             file.deleted_folder = False
             session.commit()
             session.close()
+            publish_new_file_message(file)
         else :
             clone_old_file(file, same_as)
             session.commit()
@@ -115,8 +117,10 @@ def split(file_id):
     except Exception as e:
         logging.exception(e)
 
+
 def get_file_name_from_path(path):
     return re.split("(\\\\|/)", path)[-1]
+
 
 def iterate_paths(imagepaths, old_file):
     for path1 in imagepaths.values():
@@ -128,12 +132,14 @@ def iterate_paths(imagepaths, old_file):
         else: return True
     return True
 
+
 def check_images_are_equal(imagePath1, imagePath2):
     im1 = Image.open(imagePath1)
     im2 = Image.open(imagePath2)
     imDiff = ImageChops.difference(im1, im2)
     imDiff.save("diff.png")
     return True if imDiff.getbbox() == None else False
+
 
 def clone_old_file(file, old_file):
     file.extract_pages = old_file.extract_pages
