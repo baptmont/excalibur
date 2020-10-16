@@ -272,15 +272,16 @@ def create_data(job):
     render_files = json.loads(job.render_files)
     regex = r"page-(\d)+-table-(\d)+"
     for k in sorted(render_files, key=lambda x: (int(re.split(regex, x)[1]), int(re.split(regex, x)[2])),):
-        df = pd.read_json(render_files[k])
-        df = data_frame_utils.clean_data(df)
-        df = data_frame_utils.sort_data(df)
-        if table_is_reversed(k, job.job_id):
-            df = data_frame_utils.reverse_data(df)
-        columns = df.columns.values
-        records = df.to_dict("records")
-        route = '{} - {}'.format(*data_frame_utils.get_origin_and_destination(records))
-        data.append({"title": k, "columns": columns, "records": records, "route": route})
+        if not table_is_deleted(k, job.job_id):
+            df = pd.read_json(render_files[k])
+            df = data_frame_utils.clean_data(df)
+            df = data_frame_utils.sort_data(df)
+            if table_is_reversed(k, job.job_id):
+                df = data_frame_utils.reverse_data(df)
+            columns = df.columns.values
+            records = df.to_dict("records")
+            route = '{} - {}'.format(*data_frame_utils.get_origin_and_destination(records))
+            data.append({"title": k, "columns": columns, "records": records, "route": route})
     return data
 
 
@@ -291,6 +292,12 @@ def table_is_reversed(table_title, job_id):
     session.close()
     return False if not table else table.reverse
 
+def table_is_deleted(table_title, job_id):
+    table_name = search_page_table(table_title)
+    session = Session()
+    table = session.query(Table).filter(Table.job_id == job_id, Table.table_name == table_name).first()
+    session.close()
+    return False if not table else table.deleted
 
 def search_page_table(value):
     string = str(value) if value is not None else ""
@@ -377,4 +384,23 @@ def reverse(job_id, table_name):
     session.commit()
     session.close()
     flash(f'Table {table_name} Reversed!')
+    return redirect(url_for('.jobs', job_id=job_id))
+    
+@views.route("/job/<string:job_id>/table/<string:table_name>/delete", methods=["POST"]) # TODO Change to delete
+def delete_table(job_id, table_name):
+    session = Session()
+    table = session.query(Table).filter(Table.job_id == job_id, Table.table_name == table_name).first()
+    if table:
+        table.deleted = True
+    else : 
+        t = Table(
+            table_id=generate_uuid(),
+            table_name=table_name,
+            deleted=True,
+            job_id=job_id,
+        )
+        session.add(t)
+    session.commit()
+    session.close()
+    flash(f'Table {table_name} deleted!')
     return redirect(url_for('.jobs', job_id=job_id))

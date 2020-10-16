@@ -68,3 +68,4 @@ class Table(Base):
     table_name = Column(String(STR_LEN))
     reverse = Column(Boolean, default=False)
     job_id = Column(String(ID_LEN), ForeignKey("jobs.job_id"))
+    deleted = Column(Boolean, default=False)
