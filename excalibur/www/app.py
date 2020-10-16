@@ -2,6 +2,7 @@ import json
 
 from flask import Flask, Blueprint
 from werkzeug.utils import find_modules, import_string
+from jinja2 import select_autoescape
 
 from .. import configuration as conf
 from .views import views
@@ -17,4 +18,8 @@ def create_app(config=None):
     app.config.from_object(conf)
     app.register_blueprint(views)
     app.jinja_env.filters["pretty"] = to_pretty_json
+    app.jinja_env.autoescape = select_autoescape(       
+        default_for_string=True,    
+        enabled_extensions=('html', 'jinja', 'html.jinja')
+    )
     return app

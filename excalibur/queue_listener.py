@@ -49,7 +49,7 @@ def consume():
         pika.ConnectionParameters(host='localhost'))
     channel = connection.channel()
 
-    channel.basic_consume(queue='item_pdf', on_message_callback=items_queue_callback, auto_ack=True)
+    channel.basic_consume(queue='pdfs_queue', on_message_callback=items_queue_callback, auto_ack=True)
     channel.start_consuming()
 
 

@@ -61,7 +61,7 @@ def files():
                     "same_as" : file.same_as,
                 })
         session.close()
-        return render_template("files.jinja", files_response=files_response,
+        return render_template("files.html.jinja", files_response=files_response,
                                files_checked_response=files_checked_response,
                                files_ignored_response=files_ignored_response)
     print(f"here with {request}")
@@ -132,7 +132,7 @@ def workspaces(file_id):
             {"rule_id": rule.rule_id, "rule_name": rule.rule_name} for rule in rules
         ]
     return render_template(
-        "workspace.jinja",
+        "workspace.html.jinja",
         filename=file.filename,
         imagepaths=imagepaths,
         filedims=filedims,
@@ -169,7 +169,7 @@ def rules(rule_id):
             }
             for rule in rules
         ]
-        return render_template("rules.jinja", saved_rules=saved_rules)
+        return render_template("rules.html.jinja", saved_rules=saved_rules)
     message = "Rule invalid"
     file = request.files["file-0"]
     if file and allowed_filename(file.filename):
@@ -203,7 +203,7 @@ def jobs(job_id):
             data = create_data(job)
 
             return render_template(
-                "job.jinja",
+                "job.html.jinja",
                 is_finished=job.is_finished,
                 started_at=job.started_at,
                 finished_at=job.finished_at,
@@ -225,7 +225,7 @@ def jobs(job_id):
                 }
             )
         session.close()
-        return render_template("jobs.jinja", jobs_response=jobs_response)
+        return render_template("jobs.html.jinja", jobs_response=jobs_response)
     file_id = request.form["file_id"]
     rule_id = request.form["rule_id"]
 
