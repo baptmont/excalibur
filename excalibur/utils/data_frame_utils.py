@@ -2,6 +2,7 @@ import pandas as pd
 import re
 
 ignore_words = ["[Pp]artidas?", "[Pp]assage(m|ns)", "[Cc]hegadas?","DESIGNAÇÃO","designação","\(percurso sem parage(m|ns)\)"]
+ignore_expressions = ["^.{,2}$","^(.{,2}\\n)+.{,2}$","^\\n$"]
 stop_time_regex = re.compile(r'\d{1,2}(:|,)[0-5]\d')
 stop_regex = re.compile(r"[a-zA-Z]{3,}")
 
@@ -10,9 +11,9 @@ def split_rows(df_series):
     return series
 
 def clean_data(df):
-    word_regex = f"({'|'.join(ignore_words)})"
-    ignore_words_dict = {word:'' for word in ignore_words}
-    df = df.replace(ignore_words_dict, regex=True)
+    ignores_dict = {word:'' for word in ignore_words + ignore_expressions}
+    print(df.to_string())
+    df = df.replace(ignores_dict, regex=True)
     try:
         df = pd.concat([split_rows(df[col]) for col in df], axis=1)
         df = df.replace({"":pd.NaT})
@@ -20,7 +21,7 @@ def clean_data(df):
         print(e)
     df.dropna(how='all',inplace=True, axis='index')
     df.dropna(how='all',inplace=True, axis='columns')
-    df = df.replace({pd.NaT:""})
+    df = df.replace({pd.NaT:"-"})
     # df = df.apply(lambda x: split_rows(x,df), axis=0)
     return df
 
@@ -41,7 +42,7 @@ def reverse_data(df):
         df = df.iloc[::-1]
     return df
 
-def get_origin_and_destination(records):
+def get_origin_and_destination(records): # TODO change to dataframe function
     origin = ("",-1,-1)
     destination = ("",-1,-1)
     for col_id, column in enumerate(records):

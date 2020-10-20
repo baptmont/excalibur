@@ -13,7 +13,7 @@ def handle_duplicate_pdfs():
         print("Running duplication handling")
         for file in session.query(File).filter(File.same_as != None, File.deleted_folder == False):
             try:
-                delete_new_pdf_if_duplicated(file)
+                delete_added_pdf_if_duplicated(file)
                 file.deleted_folder = True
                 session.commit()
             except FileNotFoundError:
@@ -23,8 +23,7 @@ def handle_duplicate_pdfs():
         session.close()
         
 
-
-def delete_new_pdf_if_duplicated(file):
+def delete_added_pdf_if_duplicated(file):
     import shutil, time
     if file.same_as is not None:
         time.sleep(5.0)

@@ -57,7 +57,7 @@
                       </table>
                     </div>
                       <td style="width:10%"><input type="submit" formaction="/job/{{ job_id }}/table/{{ search(d.title) }}/reverse" formMethod="post" class="btn btn-sm btn-outline-success" value = "Reverse Order"></td>
-                      <td style="width:10%"><input type="submit" formaction="/job/{{ job_id }}/table/{{ search(d.title) }}/delete" formMethod="post" class="btn btn-sm btn-outline-danger" value = "Delete Order"></td>
+                      <td style="width:10%"><input type="submit" formaction="/job/{{ job_id }}/table/{{ search(d.title) }}/delete" formMethod="post" class="btn btn-sm btn-outline-danger" value = "Delete Table"></td>
                       <div class="form-group">
                         <label>Table Name</label>
                         <input class="form-control" name="name_{{ search(d.title) }}"
@@ -86,6 +86,14 @@
 {% else %}
   <meta http-equiv="refresh" content="2.0" >
   <div class="container">
+    <div class="row align-items-center">
+      {% for message in get_flashed_messages() %}
+        <div class="alert alert-danger">
+            <button type="button" class="close" data-dismiss="alert">&times;</button>
+            {{ message }}
+        </div>
+      {% endfor %}
+    </div>
     <div class="jumbotron">
       <h1 class="display-4">Processing</h1>
       <p class="lead">Please wait while the tables are extracted.</p>
