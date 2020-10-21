@@ -40,7 +40,7 @@ def items_queue_callback(ch, method, properties, body):
     file_urls, agency_name = get_file_urls(json_body)
     print(f"here - {file_urls}")
     if file_urls:
-        asyncio.run(download_files(file_urls, agency_name))
+        asyncio.run(download_files(file_urls, agency_name))  # TODO check if consume thread is not blocked
 
 
 def consume():
@@ -48,6 +48,8 @@ def consume():
     connection = pika.BlockingConnection(
         pika.ConnectionParameters(host='localhost'))
     channel = connection.channel()
+
+    channel.queue_declare(queue="pdfs_queue", durable=True)
 
     channel.basic_consume(queue='pdfs_queue', on_message_callback=items_queue_callback, auto_ack=True)
     channel.start_consuming()
@@ -80,7 +82,7 @@ def create_email_queue_dto(file):
     msg['filename'] = file.filename
     msg['uploaded_at'] = file.uploaded_at
     msg['agency_name'] = file.agency_name if hasattr(file, 'agency_name') else "-"
-    msg['url'] = file.url if hasattr(file, 'url')  else "-"
+    msg['url'] = file.url if hasattr(file, 'url') else "-"
     msg['from'] = 'excalibur'
     return msg
 

@@ -129,7 +129,7 @@ def workspaces(file_id):
         imagedims = file.imagedims
         detected_areas = file.detected_areas
         saved_rules = [
-            {"rule_id": rule.rule_id, "rule_name": rule.rule_name} for rule in rules
+            {"rule_id": rule.rule_id, "rule_name": rule.rule_name} for rule in rules if rule.save_rule
         ]
     return render_template(
         "workspace.html.jinja",
@@ -139,9 +139,10 @@ def workspaces(file_id):
         imagedims=imagedims,
         detected_areas=detected_areas,
         saved_rules=saved_rules,
-        same_as = file.same_as,
-        file_id = file_id,
+        same_as=file.same_as,
+        file_id=file_id,
     )
+
 
 @views.route("/rules", methods=["GET", "POST"], defaults={"rule_id": None})
 @views.route("/rules/<string:rule_id>", methods=["GET"])
@@ -185,6 +186,7 @@ def rules(rule_id):
             created_at=created_at,
             rule_name=rule_name,
             rule_options=rule_options,
+            save_rule=True,
         )
         session.add(r)
         session.commit()
@@ -228,16 +230,23 @@ def jobs(job_id):
         return render_template("jobs.html.jinja", jobs_response=jobs_response)
     file_id = request.form["file_id"]
     rule_id = request.form["rule_id"]
+    save_rule = request.form["save_rule"] == "true"
+    rule_options = request.form["rule_options"]
 
     session = Session()
     file = session.query(File).filter(File.file_id == file_id).first()
+    rule = None
+    if rule_id:
+        rule = session.query(Rule).filter(Rule.rule_id == rule_id).first()
     session.close()
 
-    if not rule_id:
+    print(rule)
+    print(rule.rule_options) if rule_id else print("Rule empty")
+    print(rule_options)
+    if not rule or Rule.rule_options != rule_options:
         rule_id = generate_uuid()
         created_at = dt.datetime.now()
         rule_name = "_".join([os.path.splitext(file.filename)[0], random_string(6)])
-        rule_options = request.form["rule_options"]
 
         session = Session()
         r = Rule(
@@ -245,6 +254,7 @@ def jobs(job_id):
             created_at=created_at,
             rule_name=rule_name,
             rule_options=rule_options,
+            save_rule=save_rule
         )
         session.add(r)
         session.commit()
@@ -292,12 +302,14 @@ def table_is_reversed(table_title, job_id):
     session.close()
     return False if not table else table.reverse
 
+
 def table_is_deleted(table_title, job_id):
     table_name = search_page_table(table_title)
     session = Session()
     table = session.query(Table).filter(Table.job_id == job_id, Table.table_name == table_name).first()
     session.close()
     return False if not table else table.deleted
+
 
 def search_page_table(value):
     string = str(value) if value is not None else ""
@@ -347,6 +359,7 @@ def download():
             directory=directory, filename=filename, as_attachment=True
         )
 
+
 @views.route("/ignore", methods=["POST"])
 def ignore():
     file_id = request.form["file_id"]
@@ -357,6 +370,7 @@ def ignore():
     session.close()
     return redirect(f"files")
 
+
 @views.route("/unignore", methods=["POST"])
 def unignore():
     file_id = request.form["file_id"]
@@ -366,6 +380,7 @@ def unignore():
     session.commit()
     session.close()
     return redirect(f"files")
+
 
 @views.route("/job/<string:job_id>/table/<string:table_name>/reverse", methods=["POST"])
 def reverse(job_id, table_name):
@@ -385,8 +400,9 @@ def reverse(job_id, table_name):
     session.close()
     flash(f'Table {table_name} Reversed!')
     return redirect(url_for('.jobs', job_id=job_id))
-    
-@views.route("/job/<string:job_id>/table/<string:table_name>/delete", methods=["POST"]) # TODO Change to delete
+
+
+@views.route("/job/<string:job_id>/table/<string:table_name>/delete", methods=["POST"]) # TODO Change post to delete
 def delete_table(job_id, table_name):
     session = Session()
     table = session.query(Table).filter(Table.job_id == job_id, Table.table_name == table_name).first()

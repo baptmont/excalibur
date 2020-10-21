@@ -45,6 +45,7 @@ class Rule(Base):
     created_at = Column(DateTime)
     rule_name = Column(String(STR_LEN))
     rule_options = Column(Text)
+    save_rule = Column(Boolean)
 
 
 class Job(Base):

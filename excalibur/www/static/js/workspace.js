@@ -307,15 +307,16 @@ const startJob = function () {
   let ruleOptions = {};
   const loc = window.location.pathname.split('/');
   try {
-    if (!globalRuleId) {
-      ruleOptions = getRuleOptions();
-    }
+    //if (!globalRuleId) {
+    ruleOptions = getRuleOptions();
+    //}
     $.ajax({
       url: '/jobs',
       data: {
         file_id: loc[loc.length - 1],
         rule_id: globalRuleId,
-        rule_options: JSON.stringify(ruleOptions)
+        rule_options: JSON.stringify(ruleOptions),
+        save_rule: JSON.stringify(document.getElementById('save_rule').checked)
       },
       type: 'POST',
       success: function (data) {
