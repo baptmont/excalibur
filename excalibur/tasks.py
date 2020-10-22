@@ -14,7 +14,7 @@ import shutil
 from camelot.core import TableList
 from camelot.parsers import Lattice, Stream
 from camelot.ext.ghostscript import Ghostscript
-from .queue_listener import publish_new_file_message
+from .exchanges import publish_new_file_message
 
 from . import configuration as conf
 from .models import File, Rule, Job

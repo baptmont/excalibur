@@ -4,7 +4,6 @@ import os
 import re
 import glob
 import json
-import threading
 import datetime as dt
 
 import pandas as pd
@@ -19,7 +18,7 @@ from flask import (
     url_for,
     flash)
 
-from excalibur import queue_listener
+from excalibur import exchanges
 from .. import configuration as conf
 from ..executors import get_default_executor
 from ..models import File, Rule, Job, Table
@@ -332,7 +331,7 @@ def send_message(job_id, job):
         item["agency_name"] = job.agency_name
         item["url"] = job.url
     message = pd.Series(data).to_json(orient='values')
-    queue_listener.publish(message)
+    exchanges.publish(message)
     flash('Message Sent!')
     return redirect(f"jobs/{job_id}")
 
