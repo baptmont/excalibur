@@ -10,10 +10,8 @@ def split_rows(df_series):
     series = df_series.str.strip().str.split('\\n', expand=True).stack().str.strip().reset_index(drop=True)
     return series
 
-def clean_data(df):
-    ignores_dict = {word:'' for word in ignore_words + ignore_expressions}
-    print(df.to_string())
-    df = df.replace(ignores_dict, regex=True)
+def clean_data(df, ignores_dict=None):
+    df = df.replace(ignores_dict, regex=True) if ignores_dict else df
     try:
         df = pd.concat([split_rows(df[col]) for col in df], axis=1)
         df = df.replace({"":pd.NaT})
@@ -22,7 +20,6 @@ def clean_data(df):
     df.dropna(how='all',inplace=True, axis='index')
     df.dropna(how='all',inplace=True, axis='columns')
     df = df.replace({pd.NaT:"-"})
-    # df = df.apply(lambda x: split_rows(x,df), axis=0)
     return df
 
 def sort_data(df):
@@ -30,6 +27,7 @@ def sort_data(df):
     print("cols "+str(cols))
     if not cols.empty: #sort rows
         df = df.sort_values(by=list(cols))
+        df = df.reset_index(drop=True)
     else: #sort columns
         df = df # TODO sort columns
     return df

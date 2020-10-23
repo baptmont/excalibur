@@ -38,14 +38,14 @@ async def download_files(file_urls, agency_name):
         create_files(content, agency_name=agency_name, url=url)
 
 
-def items_queue_callback(ch, method, properties, body):
+def items_queue_callback(ch, method, properties, body): 
     json_body = json.loads(body)
     print(f"here - {json_body}")
     file_urls, agency_name = get_file_urls(json_body)
     print(f"here - {file_urls}")
     if file_urls:
-        asyncio.create_task(download_files(file_urls, agency_name))
-
+        asyncio.run(download_files(file_urls, agency_name))
+ 
 
 def consume():
     print("consume")

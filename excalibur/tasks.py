@@ -5,19 +5,18 @@ import re
 import glob
 import json
 import logging
-import subprocess
 import datetime as dt
 from PIL import Image, ImageChops
 
 import camelot
 import shutil
-from camelot.core import TableList
+from camelot import core
 from camelot.parsers import Lattice, Stream
 from camelot.ext.ghostscript import Ghostscript
 from .exchanges import publish_new_file_message
 
 from . import configuration as conf
-from .models import File, Rule, Job
+from .models import File, Rule, Job, Table
 from .settings import Session
 from .utils.file import mkdirs
 from .utils.task import (
@@ -163,6 +162,25 @@ def delete_older_data(file):
     shutil.rmtree(jsonpath)
 
 
+def utf_to_html(self, path, **kwargs):
+        """Writes Table to an HTML file.
+
+        For kwargs, check :meth:`pandas.DataFrame.to_html`.
+
+        Parameters
+        ----------
+        path : str
+            Output filepath.
+
+        """
+        html_string = self.df.to_html(**kwargs)
+        with open(path, "w",encoding="utf-8") as file:
+            file.writelines('<meta charset="UTF-8">\n')
+            file.write(html_string)
+
+core.Table.to_html = utf_to_html
+
+
 def extract(job_id):
     try:
         session = Session()
@@ -187,7 +205,7 @@ def extract(job_id):
             for _t in t:
                 _t.page = int(p)
             tables.extend(t)
-        tables = TableList(tables)
+        tables = core.TableList(tables)
 
         froot, fext = os.path.splitext(file.filename)
         datapath = os.path.dirname(file.filepath)
