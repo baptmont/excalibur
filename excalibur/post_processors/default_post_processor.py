@@ -17,3 +17,6 @@ class DefaultPostProcessor(PostProcessor):
     def route_name(self, df):
         records = df.to_dict("records")
         return '{} - {}'.format(*data_frame_utils.get_origin_and_destination(records))
+
+    def format_message_records(self, df):
+        return df.to_dict("records")

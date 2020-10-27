@@ -11,3 +11,6 @@ class PostProcessor(ABC):
 
     @abstractmethod
     def route_name(self, df): pass
+
+    @abstractmethod
+    def format_message_records(self, df): pass

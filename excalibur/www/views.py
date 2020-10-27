@@ -18,7 +18,7 @@ from flask import (
     url_for,
     flash)
 
-from .table_builder import create_data, search_page_table
+from .table_builder import create_data, search_page_table, format_message
 from .. import exchanges
 from .. import configuration as conf
 from ..executors import get_default_executor
@@ -279,13 +279,17 @@ def jobs(job_id):
 def send_message(job_id, job):
     data = create_data(job)
     for item in data:
+        item["pdf_name"] = job.datapath
+        item["agency_name"] = job.agency_name
+        item["url"] = job.url
         if request.form[f'name_{search_page_table(item["title"] )}']:
             item["name"] = request.form[f'name_{search_page_table(item["title"] )}']
         if request.form.getlist(f'days_{search_page_table(item["title"] )}'):
             item["days"] = request.form.getlist(f'days_{search_page_table(item["title"] )}')
-        item["pdf_name"] = job.datapath
-        item["agency_name"] = job.agency_name
-        item["url"] = job.url
+        item["records"] = format_message(item)
+        item.pop('_days', None)  # clear private _days
+        item.pop('_records', None)  # clear private _records
+        item.pop('_df', None)  # clear private _dataframe
     message = pd.Series(data).to_json(orient='values')
     exchanges.publish(message)
     flash('Message Sent!')

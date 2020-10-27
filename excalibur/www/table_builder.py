@@ -1,3 +1,4 @@
+from itertools import count
 import re
 import json
 import pandas as pd
@@ -10,6 +11,7 @@ from ..post_processors.default_post_processor import DefaultPostProcessor
 from ..post_processors.espirito_santo_post_processor import EspiritoSantoPostProcessor
 
 agency_processors = [EspiritoSantoPostProcessor]
+regex = r"page-(\d)+-table-(\d)+(\.\d+)?"
 
 def create_data(job):
     for agency_processor in agency_processors: #agency processor
@@ -23,20 +25,26 @@ def _create_data(job, postProcessor=DefaultPostProcessor):
     postProcessor = postProcessor if issubclass(postProcessor, PostProcessor) else DefaultPostProcessor
     data = []
     render_files = json.loads(job.render_files)
-    regex = r"page-(\d)+-table-(\d)+"
     for k in sorted(render_files, key=lambda x: (int(re.split(regex, x)[1]), int(re.split(regex, x)[2])),):
-        if not table_is_deleted(k, job.job_id):
-            agency_name = job.agency_name
-            df = pd.read_json(render_files[k])
-            pp = postProcessor(agency_name)
-            pp = pp if pp.is_aplicable() else DefaultPostProcessor(df, agency_name)
-            df = pp.process(df)
-            if table_is_reversed(k, job.job_id):
-                df = data_frame_utils.reverse_data(df)
-            columns = df.columns.values
-            records = df.to_dict("records")
-            route = pp.route_name(df)
-            data.append({"title": k, "columns": columns, "records": records, "route": route})
+        count = 1
+        agency_name = job.agency_name
+        df = pd.read_json(render_files[k])
+        pp = postProcessor(agency_name)
+        pp = pp if pp.is_aplicable() else DefaultPostProcessor(agency_name)
+        print(df)
+        df = pp.process(df)
+        df_dict = df if isinstance(df, list) else [("None",df)]
+        for days, df in df_dict:
+            title = f'{k}.{count}' if days != "None" else k  #update name of table 
+            if not table_is_deleted(title, job.job_id):
+                count+=1
+                if table_is_reversed(title, job.job_id):
+                    df = data_frame_utils.reverse_data(df)
+                columns = df.columns.values
+                records = df.to_dict("records")
+                route = pp.route_name(df)
+                data.append({"title": title, "columns": columns, "_records": records, "route": route, 
+                            "_days":days, "_df":df})
     return data
 
 
@@ -58,9 +66,25 @@ def table_is_deleted(table_title, job_id):
 
 def search_page_table(value):
     string = str(value) if value is not None else ""
-    regex = r"page-(\d)+-table-(\d)+"
     table = re.search(regex, string)
     if table:
         return str(table.group(0))
     else:
         return ""
+
+
+def format_message(item):
+    for agency_processor in agency_processors: #agency processor
+        if agency_processor(item["agency_name"]).is_aplicable():
+            return _format_message(item, agency_processor)
+    return _format_message(item, DefaultPostProcessor)
+
+def _format_message(item, postProcessor=DefaultPostProcessor):
+    postProcessor = postProcessor if postProcessor != None else DefaultPostProcessor
+    postProcessor = postProcessor if issubclass(postProcessor, PostProcessor) else DefaultPostProcessor
+    agency_name = item["agency_name"]
+    pp = postProcessor(agency_name)
+    pp = pp if pp.is_aplicable() else DefaultPostProcessor(agency_name)
+    pp.route = item["name"]
+    records = pp.format_message_records(item["_df"])
+    return records
