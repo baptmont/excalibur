@@ -1,11 +1,13 @@
-import pandas
 from ..utils import data_frame_utils
 from .post_processor import PostProcessor
 
 class DefaultPostProcessor(PostProcessor):
     def __init__(self, agency) -> None: pass
-
-    def is_aplicable(self):
+    
+    def is_aplicable_to_agency(self, agency=None):
+        return True
+    
+    def is_aplicable_to_dataframe(self, df=None):
         return True
 
     def process(self, df):

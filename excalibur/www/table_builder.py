@@ -9,13 +9,14 @@ from ..utils import data_frame_utils
 from ..post_processors.post_processor import PostProcessor
 from ..post_processors.default_post_processor import DefaultPostProcessor
 from ..post_processors.espirito_santo_post_processor import EspiritoSantoPostProcessor
+from ..post_processors.valpi_post_processor import ValpiPostProcessor
 
-agency_processors = [EspiritoSantoPostProcessor]
+agency_processors = [EspiritoSantoPostProcessor, ValpiPostProcessor]
 regex = r"page-(\d)+-table-(\d)+(\.\d+)?"
 
 def create_data(job):
     for agency_processor in agency_processors: #agency processor
-        if agency_processor(job.agency_name).is_aplicable():
+        if agency_processor(job.agency_name).is_aplicable_to_agency(job.agency_name):
             return _create_data(job, agency_processor)
     return _create_data(job, DefaultPostProcessor)
 
@@ -30,7 +31,7 @@ def _create_data(job, postProcessor=DefaultPostProcessor):
         agency_name = job.agency_name
         df = pd.read_json(render_files[k])
         pp = postProcessor(agency_name)
-        pp = pp if pp.is_aplicable() else DefaultPostProcessor(agency_name)
+        pp = pp if pp.is_aplicable_to_dataframe(df) else DefaultPostProcessor(agency_name)
         print(df)
         df = pp.process(df)
         df_dict = df if isinstance(df, list) else [("None",df)]

@@ -18,9 +18,9 @@ def clean_data(df, ignores_dict=None, split=True):
         df = df.replace({"":pd.NaT})
     except Exception as e:
         print(e)
-    df.dropna(how='all',inplace=True, axis='index')
-    df.dropna(how='all',inplace=True, axis='columns')
-    df = df.replace({pd.NaT:"-"}).reset_index(drop=True)
+    df = df.dropna(how='all', axis='index').reset_index(drop=True)
+    df = df.dropna(how='all', axis='columns').reset_index(drop=True)
+    df = df.replace({pd.NaT:"-"})
     return df
 
 def sort_data(df):
