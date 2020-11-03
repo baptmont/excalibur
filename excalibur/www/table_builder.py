@@ -76,7 +76,7 @@ def search_page_table(value):
 
 def format_message(item):
     for agency_processor in agency_processors: #agency processor
-        if agency_processor(item["agency_name"]).is_aplicable():
+        if agency_processor(item["agency_name"]).is_aplicable_to_agency(item["agency_name"]):
             return _format_message(item, agency_processor)
     return _format_message(item, DefaultPostProcessor)
 
@@ -85,7 +85,7 @@ def _format_message(item, postProcessor=DefaultPostProcessor):
     postProcessor = postProcessor if issubclass(postProcessor, PostProcessor) else DefaultPostProcessor
     agency_name = item["agency_name"]
     pp = postProcessor(agency_name)
-    pp = pp if pp.is_aplicable() else DefaultPostProcessor(agency_name)
+    pp = pp if pp.is_aplicable_to_dataframe(item["_df"]) else DefaultPostProcessor(agency_name)
     pp.route = item["name"]
     records = pp.format_message_records(item["_df"])
     return records
