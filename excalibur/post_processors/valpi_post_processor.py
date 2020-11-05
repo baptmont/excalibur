@@ -12,7 +12,7 @@ class ValpiPostProcessor(PostProcessor):
         try:
             agency = agency if agency else self.agency_name
             return agency == "valpi"
-        except:
+        except Exception:
             return False
 
     def is_aplicable_to_dataframe(self, df=None):
@@ -59,7 +59,7 @@ class ValpiPostProcessor(PostProcessor):
         ].iloc[
             0
         ]  # extract row that has LINHA
-        mask = lines.str.contains("\d+", case=False, regex=True)
+        mask = lines.str.contains(r"\d+", case=False, regex=True)
         lines = pd.Series(lines.values[mask], lines.index[mask]).reset_index(
             drop=True
         )  # extract columns with numbers
@@ -105,7 +105,7 @@ class ValpiPostProcessor(PostProcessor):
         df_list = []
         prev_index = 0
         for index, value in temp_df.iteritems():
-            if value == False:  # service change
+            if value is False:  # service change
                 print("1")
                 sub_df = df.iloc[:, prev_index:index]
                 df_list.append(sub_df)  # add previous service with sliced dataframe
@@ -119,10 +119,11 @@ class ValpiPostProcessor(PostProcessor):
     def route_name(self, df=None):
         try:
             return f'{df.line} - {self.route.replace("|","-") if self.route else ""}'
-        except:
+        except Exception:
             return self.route.replace("|", "-") if self.route else ""
 
-    # Days generator yields the result depending on the dataframe series with the services
+    # Days generator yields the result depending on the dataframe series with
+    # the services
     def service_to_days(self, services_df):
         services_dict = {
             self.service_regex[0]: [
@@ -146,7 +147,7 @@ class ValpiPostProcessor(PostProcessor):
                 service_counter += 1
             except GeneratorExit:
                 return
-            except:
+            except Exception:
                 yield "None"
 
     def format_message_records(self, df):

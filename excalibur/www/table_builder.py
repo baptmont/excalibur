@@ -1,4 +1,3 @@
-from itertools import count
 import re
 import json
 import pandas as pd
@@ -23,7 +22,7 @@ def create_data(job):
 
 
 def _create_data(job, postProcessor=DefaultPostProcessor):
-    postProcessor = postProcessor if postProcessor != None else DefaultPostProcessor
+    postProcessor = postProcessor if postProcessor is not None else DefaultPostProcessor
     postProcessor = (
         postProcessor
         if issubclass(postProcessor, PostProcessor)
@@ -112,7 +111,7 @@ def format_message(item):
 
 
 def _format_message(item, postProcessor=DefaultPostProcessor):
-    postProcessor = postProcessor if postProcessor != None else DefaultPostProcessor
+    postProcessor = postProcessor if postProcessor is not None else DefaultPostProcessor
     postProcessor = (
         postProcessor
         if issubclass(postProcessor, PostProcessor)

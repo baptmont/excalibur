@@ -2,12 +2,12 @@ import pandas as pd
 import re
 
 ignore_words = [
-    "[Pp]artidas?",
-    "[Pp]assage(m|ns)",
-    "[Cc]hegadas?",
-    "DESIGNAÇÃO",
-    "designação",
-    "\(percurso sem parage(m|ns)\)",
+    r"[Pp]artidas?",
+    r"[Pp]assage(m|ns)",
+    r"[Cc]hegadas?",
+    r"DESIGNAÇÃO",
+    r"designação",
+    r"\(percurso sem parage(m|ns)\)",
 ]
 ignore_expressions = ["^.{,2}$", "^(.{,2}\\n)+.{,2}$", "^\\n$"]
 stop_time_regex = r"\d{1,2}(:|,)[0-5]\d"  # TODO test after compile removed

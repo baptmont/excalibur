@@ -1,5 +1,4 @@
 import os
-import re
 import glob
 import json
 import datetime as dt
@@ -13,7 +12,6 @@ from flask import (
     redirect,
     render_template,
     send_from_directory,
-    url_for,
     flash,
 )
 
@@ -349,7 +347,7 @@ def ignore():
     file.is_ignored = True
     session.commit()
     session.close()
-    return redirect(f"files")
+    return redirect("files")
 
 
 @views.route("/unignore", methods=["POST"])
@@ -360,7 +358,7 @@ def unignore():
     file.is_ignored = False
     session.commit()
     session.close()
-    return redirect(f"files")
+    return redirect("files")
 
 
 @views.route("/job/<string:job_id>/table/<string:table_name>/reverse", methods=["POST"])

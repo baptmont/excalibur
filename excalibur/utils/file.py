@@ -2,7 +2,6 @@ import os
 
 from .. import configuration as conf
 from ..executors import get_default_executor
-from subprocess import run
 
 
 def mkdirs(path):

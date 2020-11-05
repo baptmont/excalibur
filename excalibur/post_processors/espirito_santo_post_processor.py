@@ -12,7 +12,7 @@ class EspiritoSantoPostProcessor(PostProcessor):
         try:
             agency = agency if agency else self.agency_name
             return agency == "espirito_santo"
-        except:
+        except Exception:
             return False
 
     def is_aplicable_to_dataframe(self, df=None):
@@ -22,7 +22,7 @@ class EspiritoSantoPostProcessor(PostProcessor):
             return (
                 sum([df[column].str.count(r"\d+").sum() for column in df.columns]) >= 10
             )
-        except:
+        except Exception:
             return False
 
     def process(self, df):
@@ -64,7 +64,7 @@ class EspiritoSantoPostProcessor(PostProcessor):
         services = self.service_to_days(services_df)
         for index, value in temp_df.iteritems():
             print(f"here {index} and {value}")
-            if value == False:  # service change
+            if value is False:  # service change
                 print("1")
                 df_list.append(
                     (next(services), df[prev_index:index])
@@ -81,7 +81,8 @@ class EspiritoSantoPostProcessor(PostProcessor):
     def route_name(self, df=None):
         return self.route.replace("\uf0e0", "-") if self.route else ""
 
-    # Days generator yields the result depending on the dataframe series with the services
+    # Days generator yields the result depending on the dataframe series with
+    # the services
     def service_to_days(self, services_df):
         services_dict = {
             "D.?U.?\\n?": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
@@ -102,7 +103,7 @@ class EspiritoSantoPostProcessor(PostProcessor):
                 service_counter += 1
             except GeneratorExit:
                 return
-            except:
+            except Exception:
                 yield "None"
 
     def format_message_records(self, df):
@@ -112,7 +113,8 @@ class EspiritoSantoPostProcessor(PostProcessor):
         origin = re.search(route_name_regex, self.route_name()).group(
             "origin"
         )  # extract origin group
-        stop_time_regex = fr"({data_frame_utils.stop_time_regex}).*"  # allow anything after stop time regex as group 2
+        # allow anything after stop time regex as group 2
+        stop_time_regex = fr"({data_frame_utils.stop_time_regex}).*"
         # remove group 2 of stop_time_regex and append origin to flat list
         records = (
             df.replace({stop_time_regex: r"\1"}, regex=True)

@@ -13,7 +13,7 @@ def handle_duplicate_pdfs():
         session = Session()
         print("Running duplication handling")
         for file in session.query(File).filter(
-            File.same_as != None, File.deleted_folder == False
+            File.same_as is not None, File.deleted_folder is False
         ):
             try:
                 delete_added_pdf_if_duplicated(file)
@@ -21,7 +21,7 @@ def handle_duplicate_pdfs():
                 session.commit()
             except FileNotFoundError:
                 print(f"Inexistent files for {file.file_id}")
-            except:
+            except (WindowsError, OSError, Exception):
                 print(
                     f"An exception occurred when deleting the files for {file.file_id}"
                 )
@@ -29,7 +29,8 @@ def handle_duplicate_pdfs():
 
 
 def delete_added_pdf_if_duplicated(file):
-    import shutil, time
+    import shutil
+    import time
 
     if file.same_as is not None:
         time.sleep(5.0)

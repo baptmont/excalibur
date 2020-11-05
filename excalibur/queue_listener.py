@@ -1,11 +1,8 @@
-import tempfile
-
 import pika
 import json
 import time
 import requests
 import traceback
-from excalibur import configuration as conf
 from excalibur.www.views import create_files
 from werkzeug.datastructures import FileStorage
 from io import BytesIO
@@ -65,7 +62,7 @@ def consume():
         channel.start_consuming()
     except KeyboardInterrupt:
         traceback.print_exc()
-    except Exception as e:
+    except Exception:
         traceback.print_exc()
         time.sleep(RECONNECT_DELAY)
         print("Attempting to reconnect")

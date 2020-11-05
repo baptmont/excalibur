@@ -7,7 +7,6 @@ import warnings
 import datetime as dt
 from PIL import Image, ImageChops
 
-import camelot
 import shutil
 from camelot import core
 from camelot.parsers import Lattice, Stream
@@ -16,7 +15,7 @@ from camelot.ext.ghostscript import Ghostscript
 from .exchanges import publish_new_file_message
 
 from . import configuration as conf
-from .models import Job, File, Rule, Table
+from .models import Job, File, Rule
 from .settings import Session
 from .utils.file import mkdirs
 from .utils.task import get_pages, save_page, get_file_dim, get_image_dim
@@ -86,7 +85,7 @@ def split(file_id):
         for old_file in session.query(File).filter(
             File.file_id != file_id,
             File.filename == file.filename,
-            File.same_as == None,
+            File.same_as is None,
         ):
             file_is_new = file_is_new and iterate_paths(imagepaths, old_file)
             same_as = same_as if file_is_new else old_file
@@ -142,7 +141,7 @@ def check_images_are_equal(imagePath1, imagePath2):
     im2 = Image.open(imagePath2)
     imDiff = ImageChops.difference(im1, im2)
     imDiff.save("diff.png")
-    return True if imDiff.getbbox() == None else False
+    return True if imDiff.getbbox() is None else False
 
 
 def clone_old_file(file, old_file):
@@ -321,7 +320,7 @@ def extract(job_id):
 
 
 def create_respective_columns(kwargs):
-    if kwargs["columns"] != None:
+    if kwargs["columns"] is not None:
         cols = []
         for area in kwargs["table_areas"]:
             x1, _, x2, _ = area.split(",")
