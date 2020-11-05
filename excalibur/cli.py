@@ -1,18 +1,16 @@
-# -*- coding: utf-8 -*-
-
 import os
-from threading import Thread
+from threading import Thread, Timer
 
 import click
 
 from . import queue_listener
 from .duplicate_handling import handle_duplicate_pdfs
-from . import __version__, settings
+from . import settings, __version__
 from . import configuration as conf
-from .operators.python_operator import PythonOperator
 from .tasks import split, extract
-from .utils.database import initialize_database, reset_database
 from .www.app import create_app
+from .utils.database import reset_database, initialize_database
+from .operators.python_operator import PythonOperator
 
 
 def abort_if_false(ctx, param, value):
@@ -52,6 +50,12 @@ def webserver(*args, **kwargs):
         if not os.path.isfile(sqlite_path):
             initialize_database()
 
+    # https://stackoverflow.com/a/54235461/2780127
+    def open_browser():
+        click.launch(f'http://localhost:{conf.get("webserver", "web_server_port")}')
+
+    Timer(1, open_browser).start()
+
     app = create_app(conf)
 
     app_args = {"port": conf.get("webserver", "web_server_port"),
@@ -69,6 +73,7 @@ def webserver(*args, **kwargs):
 @cli.command("worker")
 def worker(*args, **kwargs):
     from celery.bin import worker
+
     from .executors.celery_executor import app as celery_app
 
     worker = worker.worker(app=celery_app)

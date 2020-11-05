@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import os
 import re
 import glob
@@ -18,16 +16,10 @@ from camelot.ext.ghostscript import Ghostscript
 from .exchanges import publish_new_file_message
 
 from . import configuration as conf
-from .models import File, Rule, Job, Table
+from .models import Job, File, Rule, Table
 from .settings import Session
 from .utils.file import mkdirs
-from .utils.task import (
-    get_pages,
-    save_page,
-    get_page_layout,
-    get_file_dim,
-    get_image_dim,
-)
+from .utils.task import get_pages, save_page, get_file_dim, get_image_dim
 
 
 def split(file_id):
@@ -49,16 +41,16 @@ def split(file_id):
             # extract into single-page PDF
             save_page(file.filepath, page)
 
-            filename = "page-{}.pdf".format(page)
+            filename = f"page-{page}.pdf"
             filepath = os.path.join(conf.PDFS_FOLDER, file_id, filename)
             imagename = "".join([filename.replace(".pdf", ""), ".png"])
             imagepath = os.path.join(conf.PDFS_FOLDER, file_id, imagename)
 
             # convert single-page PDF to PNG
-            gs_call = "-q -sDEVICE=png16m -o {} -r300 {}".format(imagepath, filepath)
+            gs_call = f"-q -sDEVICE=png16m -o {imagepath} -r300 {filepath}"
             gs_call = gs_call.encode().split()
             null = open(os.devnull, "wb")
-            with Ghostscript(*gs_call, stdout=null) as gs:
+            with Ghostscript(*gs_call, stdout=null):
                 pass
             null.close()
 
@@ -287,12 +279,12 @@ def extract(job_id):
             f_datapath = os.path.join(datapath, f)
             mkdirs(f_datapath)
             ext = f if f != "excel" else "xlsx"
-            f_datapath = os.path.join(f_datapath, "{}.{}".format(froot, ext))
+            f_datapath = os.path.join(f_datapath, f"{froot}.{ext}")
             tables.export(f_datapath, f=f, compress=True)
 
         # for render
         jsonpath = os.path.join(datapath, "json")
-        jsonpath = os.path.join(jsonpath, "{}.json".format(froot))
+        jsonpath = os.path.join(jsonpath, f"{froot}.json")
         tables.export(jsonpath, f="json")
         render_files = {
             os.path.splitext(os.path.basename(f))[0]: f

@@ -2,10 +2,10 @@ import os
 
 import cv2
 from PyPDF2 import PdfFileReader, PdfFileWriter
-from camelot.utils import get_page_layout, get_text_objects, get_rotation
+from camelot.utils import get_rotation, get_page_layout, get_text_objects
 
 
-def get_pages(filename, pages):
+def get_pages(filename, pages, password=""):
     """Converts pages string to list of ints.
 
     Parameters
@@ -34,7 +34,7 @@ def get_pages(filename, pages):
         page_numbers.append({"start": 1, "end": 1})
     else:
         if infile.isEncrypted:
-            infile.decrypt('')
+            infile.decrypt(password)
         if pages == "all":
             page_numbers.append({"start": 1, "end": infile.getNumPages()})
         else:
@@ -58,7 +58,7 @@ def save_page(filepath, page_number):
     page = infile.getPage(page_number - 1)
     outfile = PdfFileWriter()
     outfile.addPage(page)
-    outpath = os.path.join(os.path.dirname(filepath), "page-{}.pdf".format(page_number))
+    outpath = os.path.join(os.path.dirname(filepath), f"page-{page_number}.pdf")
     with open(outpath, "wb") as f:
         outfile.write(f)
     froot, fext = os.path.splitext(outpath)
