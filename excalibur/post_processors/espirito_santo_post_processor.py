@@ -20,7 +20,7 @@ class EspiritoSantoPostProcessor(PostProcessor):
             count = str([df[column].str.count(r"\d+").sum() for column in df.columns])
             print(f"Found a total of {count} possible passing times")
             return (
-                sum([df[column].str.count(r"\d+").sum() for column in df.columns]) >= 10
+                sum(df[column].str.count(r"\d+").sum() for column in df.columns) >= 10
             )
         except Exception:
             return False
@@ -62,7 +62,7 @@ class EspiritoSantoPostProcessor(PostProcessor):
         df_list = []
         prev_index = 0
         services = self.service_to_days(services_df)
-        for index, value in temp_df.iteritems():
+        for index, value in temp_df.items():
             print(f"here {index} and {value}")
             if value is False:  # service change
                 print("1")

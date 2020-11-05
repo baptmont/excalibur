@@ -21,7 +21,7 @@ def handle_duplicate_pdfs():
                 session.commit()
             except FileNotFoundError:
                 print(f"Inexistent files for {file.file_id}")
-            except (WindowsError, OSError, Exception):
+            except (WindowsError, Exception):
                 print(
                     f"An exception occurred when deleting the files for {file.file_id}"
                 )

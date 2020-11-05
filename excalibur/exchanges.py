@@ -19,7 +19,7 @@ def publish(message):
 
 
 def create_email_queue_dto(file):
-    msg = dict()
+    msg = {}
     msg["filename"] = file.filename
     msg["uploaded_at"] = file.uploaded_at
     msg["agency_name"] = file.agency_name if hasattr(file, "agency_name") else "-"

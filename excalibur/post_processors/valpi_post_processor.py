@@ -104,7 +104,7 @@ class ValpiPostProcessor(PostProcessor):
 
         df_list = []
         prev_index = 0
-        for index, value in temp_df.iteritems():
+        for index, value in temp_df.items():
             if value is False:  # service change
                 print("1")
                 sub_df = df.iloc[:, prev_index:index]
