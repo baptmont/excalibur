@@ -21,7 +21,7 @@ requires = [
     "Werkzeug<1.0.0",
     "pika>=1.1.0",
     "requests>=2.23.0",
-    "Pillow>=6.2.1"
+    "Pillow>=6.2.1",
 ]
 mysql = ["mysqlclient>=1.3.6"]
 all_requires = requires + mysql
