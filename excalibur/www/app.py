@@ -1,9 +1,7 @@
 import json
 
-from flask import Flask, Blueprint
-from werkzeug.utils import find_modules, import_string
+from flask import Flask
 from jinja2 import select_autoescape
-
 from .. import configuration as conf
 from .views import views
 

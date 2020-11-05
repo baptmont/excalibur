@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import os
 import re
 import glob
@@ -7,23 +5,26 @@ import json
 import datetime as dt
 
 import pandas as pd
-from werkzeug import secure_filename
 from flask import (
     Blueprint,
     jsonify,
+    request,
+    url_for,
     redirect,
     render_template,
-    request,
     send_from_directory,
     url_for,
-    flash)
+    flash
+)
+
+from werkzeug import secure_filename
 
 from .table_builder import create_data, search_page_table, format_message
 from .. import exchanges
 from .. import configuration as conf
-from ..executors import get_default_executor
-from ..models import File, Rule, Job, Table
+from ..models import Job, File, Rule, Table
 from ..settings import Session
+from ..executors import get_default_executor
 from ..utils.file import mkdirs, allowed_filename, is_image_file, ocr_image
 from ..utils.metadata import generate_uuid, random_string
 
