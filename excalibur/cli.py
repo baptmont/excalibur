@@ -43,6 +43,7 @@ def resetdb(*args, **kwargs):
     reset_database()
     initialize_database()
 
+
 @cli.command("webserver")
 def webserver(*args, **kwargs):
     if conf.USING_SQLITE:
@@ -58,9 +59,11 @@ def webserver(*args, **kwargs):
 
     app = create_app(conf)
 
-    app_args = {"port": conf.get("webserver", "web_server_port"),
-                "host": conf.get("webserver", "web_server_host"),
-                "use_reloader": False}
+    app_args = {
+        "port": conf.get("webserver", "web_server_port"),
+        "host": conf.get("webserver", "web_server_host"),
+        "use_reloader": False,
+    }
 
     process = Thread(target=app.run, kwargs=app_args)
     process2 = Thread(target=queue_listener.consume, args=())

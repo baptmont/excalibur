@@ -67,6 +67,7 @@ class Job(Base):
     agency_name = Column(Text)
     url = Column(Text)
 
+
 class Table(Base):
     __tablename__ = "tables"
 

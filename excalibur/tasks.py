@@ -83,10 +83,14 @@ def split(file_id):
 
         file_is_new = True
         same_as = None
-        for old_file in session.query(File).filter(File.file_id != file_id, File.filename == file.filename, File.same_as == None) :
+        for old_file in session.query(File).filter(
+            File.file_id != file_id,
+            File.filename == file.filename,
+            File.same_as == None,
+        ):
             file_is_new = file_is_new and iterate_paths(imagepaths, old_file)
             same_as = same_as if file_is_new else old_file
-        if file_is_new :
+        if file_is_new:
             file.extract_pages = json.dumps(extract_pages)
             file.total_pages = total_pages
             file.has_image = True
@@ -102,11 +106,11 @@ def split(file_id):
             session.commit()
             session.close()
             publish_new_file_message(file)
-        else :
+        else:
             clone_old_file(file, same_as)
             session.commit()
             session.close()
-        
+
     except Exception as e:
         logging.exception(e)
 
@@ -118,11 +122,18 @@ def get_file_name_from_path(path):
 def iterate_paths(imagepaths, old_file):
     for path1 in imagepaths.values():
         print(old_file.imagepaths)
-        if old_file.imagepaths is None: return True
-        path2 = [path for path in json.loads(old_file.imagepaths).values() if get_file_name_from_path(path) == get_file_name_from_path(path1)]
+        if old_file.imagepaths is None:
+            return True
+        path2 = [
+            path
+            for path in json.loads(old_file.imagepaths).values()
+            if get_file_name_from_path(path) == get_file_name_from_path(path1)
+        ]
         if path2:
-            if check_images_are_equal(path1, path2[0]): return False
-        else: return True
+            if check_images_are_equal(path1, path2[0]):
+                return False
+        else:
+            return True
     return True
 
 
@@ -168,11 +179,13 @@ def utf_to_html(self, path, **kwargs):
 
     """
     html_string = self.df.to_html(**kwargs)
-    with open(path, "w",encoding="utf-8") as file:
+    with open(path, "w", encoding="utf-8") as file:
         file.writelines('<meta charset="UTF-8">\n')
         file.write(html_string)
-    
+
+
 core.Table.to_html = utf_to_html  # FIXME very hacky fix by changing dependecy code
+
 
 def _generate_columns_and_rows(self, table_idx, tk):
     # select elements which lie within table_bbox
@@ -214,9 +227,7 @@ def _generate_columns_and_rows(self, table_idx, tk):
             if len(elements):
                 ncols = max(set(elements))
             else:
-                warnings.warn(
-                    f"No tables found in table area {table_idx + 1}"
-                )
+                warnings.warn(f"No tables found in table area {table_idx + 1}")
         cols = [(t.x0, t.x1) for r in rows_grouped if len(r) == ncols for t in r]
         cols = self._merge_columns(sorted(cols), column_tol=self.column_tol)
         inner_text = []
@@ -242,7 +253,10 @@ def _generate_columns_and_rows(self, table_idx, tk):
         cols = self._join_columns(cols, text_x_min, text_x_max)
     return cols, rows
 
-Stream._generate_columns_and_rows = _generate_columns_and_rows  # FIXME very hacky fix by changing dependecy code
+
+Stream._generate_columns_and_rows = (
+    _generate_columns_and_rows  # FIXME very hacky fix by changing dependecy code
+)
 
 
 def extract(job_id):
@@ -262,7 +276,11 @@ def extract(job_id):
         for p in pages:
             kwargs = pages[p]
             kwargs.update(rule_options)
-            kwargs = create_respective_columns(kwargs) if flavor.lower() == "stream" else kwargs
+            kwargs = (
+                create_respective_columns(kwargs)
+                if flavor.lower() == "stream"
+                else kwargs
+            )
             parser = (
                 Lattice(**kwargs) if flavor.lower() == "lattice" else Stream(**kwargs)
             )
@@ -303,12 +321,20 @@ def extract(job_id):
 
 
 def create_respective_columns(kwargs):
-    if(kwargs["columns"] != None):
+    if kwargs["columns"] != None:
         cols = []
         for area in kwargs["table_areas"]:
             x1, _, x2, _ = area.split(",")
             x1 = float(x1)
             x2 = float(x2)
-            cols.append(",".join([column for column in kwargs["columns"][0].split(",") if float(column)>x1 and float(column)<x2]))
+            cols.append(
+                ",".join(
+                    [
+                        column
+                        for column in kwargs["columns"][0].split(",")
+                        if float(column) > x1 and float(column) < x2
+                    ]
+                )
+            )
         kwargs["columns"] = cols
     return kwargs

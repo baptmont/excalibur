@@ -28,7 +28,7 @@ def get_pages(filename, pages, password=""):
     inputstream = open(filename, "rb")
     infile = PdfFileReader(inputstream, strict=False)
     if infile.isEncrypted:
-        infile.decrypt('')
+        infile.decrypt("")
     N = infile.getNumPages()
     if pages == "1":
         page_numbers.append({"start": 1, "end": 1})

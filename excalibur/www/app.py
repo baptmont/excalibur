@@ -16,8 +16,7 @@ def create_app(config=None):
     app.config.from_object(conf)
     app.register_blueprint(views)
     app.jinja_env.filters["pretty"] = to_pretty_json
-    app.jinja_env.autoescape = select_autoescape(       
-        default_for_string=True,    
-        enabled_extensions=('html', 'jinja', 'html.jinja')
+    app.jinja_env.autoescape = select_autoescape(
+        default_for_string=True, enabled_extensions=("html", "jinja", "html.jinja")
     )
     return app

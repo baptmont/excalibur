@@ -14,7 +14,7 @@ from flask import (
     render_template,
     send_from_directory,
     url_for,
-    flash
+    flash,
 )
 
 from werkzeug import secure_filename
@@ -51,19 +51,30 @@ def files():
                 .first()
             )
 
-            response = files_ignored_response if file.is_ignored else files_checked_response if job is not None else files_response
-            response.append({
+            response = (
+                files_ignored_response
+                if file.is_ignored
+                else files_checked_response
+                if job is not None
+                else files_response
+            )
+            response.append(
+                {
                     "file_id": file.file_id,
                     "job_id": job.job_id if job is not None else "",
                     "uploaded_at": file.uploaded_at.strftime("%Y-%m-%dT%H:%M:%S"),
                     "filename": file.filename,
                     "agency_name": file.agency_name,
-                    "same_as" : file.same_as,
-                })
+                    "same_as": file.same_as,
+                }
+            )
         session.close()
-        return render_template("files.html.jinja", files_response=files_response,
-                               files_checked_response=files_checked_response,
-                               files_ignored_response=files_ignored_response)
+        return render_template(
+            "files.html.jinja",
+            files_response=files_response,
+            files_checked_response=files_checked_response,
+            files_ignored_response=files_ignored_response,
+        )
     print(f"here with {request}")
     file = request.files["file-0"]
     file_id = create_files(file, pages=request.form["pages"])
@@ -83,8 +94,8 @@ def create_files(file, pages="all", agency_name="", url=""):
         print(f"Path {filepath}")
         file.save(filepath)
 
-        if( is_image_file(file) ):
-            filepath = ocr_image(filepath )
+        if is_image_file(file):
+            filepath = ocr_image(filepath)
 
         session = Session()
         f = File(
@@ -95,7 +106,7 @@ def create_files(file, pages="all", agency_name="", url=""):
             filepath=filepath,
             agency_name=agency_name,
             url=url,
-            is_ignored = False,
+            is_ignored=False,
         )
         session.add(f)
         session.commit()
@@ -129,7 +140,9 @@ def workspaces(file_id):
         imagedims = file.imagedims
         detected_areas = file.detected_areas
         saved_rules = [
-            {"rule_id": rule.rule_id, "rule_name": rule.rule_name} for rule in rules if rule.save_rule
+            {"rule_id": rule.rule_id, "rule_name": rule.rule_name}
+            for rule in rules
+            if rule.save_rule
         ]
     return render_template(
         "workspace.html.jinja",
@@ -254,7 +267,7 @@ def jobs(job_id):
             created_at=created_at,
             rule_name=rule_name,
             rule_options=rule_options,
-            save_rule=save_rule
+            save_rule=save_rule,
         )
         session.add(r)
         session.commit()
@@ -264,8 +277,14 @@ def jobs(job_id):
     started_at = dt.datetime.now()
 
     session = Session()
-    j = Job(job_id=job_id, started_at=started_at, file_id=file_id, rule_id=rule_id, agency_name=file.agency_name,
-            url=file.url)
+    j = Job(
+        job_id=job_id,
+        started_at=started_at,
+        file_id=file_id,
+        rule_id=rule_id,
+        agency_name=file.agency_name,
+        url=file.url,
+    )
     session.add(j)
     session.commit()
     session.close()
@@ -286,14 +305,16 @@ def send_message(job_id, job):
         if request.form[f'name_{search_page_table(item["title"] )}']:
             item["name"] = request.form[f'name_{search_page_table(item["title"] )}']
         if request.form.getlist(f'days_{search_page_table(item["title"] )}'):
-            item["days"] = request.form.getlist(f'days_{search_page_table(item["title"] )}')
+            item["days"] = request.form.getlist(
+                f'days_{search_page_table(item["title"] )}'
+            )
         item["records"] = format_message(item)
-        item.pop('_days', None)  # clear private _days
-        item.pop('_records', None)  # clear private _records
-        item.pop('_df', None)  # clear private _dataframe
-    message = pd.Series(data).to_json(orient='values')
+        item.pop("_days", None)  # clear private _days
+        item.pop("_records", None)  # clear private _records
+        item.pop("_df", None)  # clear private _dataframe
+    message = pd.Series(data).to_json(orient="values")
     exchanges.publish(message)
-    flash('Message Sent!')
+    flash("Message Sent!")
     return redirect(f"jobs/{job_id}")
 
 
@@ -345,10 +366,14 @@ def unignore():
 @views.route("/job/<string:job_id>/table/<string:table_name>/reverse", methods=["POST"])
 def reverse(job_id, table_name):
     session = Session()
-    table = session.query(Table).filter(Table.job_id == job_id, Table.table_name == table_name).first()
+    table = (
+        session.query(Table)
+        .filter(Table.job_id == job_id, Table.table_name == table_name)
+        .first()
+    )
     if table:
         table.reverse = not table.reverse
-    else : 
+    else:
         t = Table(
             table_id=generate_uuid(),
             table_name=table_name,
@@ -358,17 +383,23 @@ def reverse(job_id, table_name):
         session.add(t)
     session.commit()
     session.close()
-    flash(f'Table {table_name} Reversed!')
-    return redirect(url_for('.jobs', job_id=job_id))
+    flash(f"Table {table_name} Reversed!")
+    return redirect(url_for(".jobs", job_id=job_id))
 
 
-@views.route("/job/<string:job_id>/table/<string:table_name>/delete", methods=["POST"]) # TODO Change post to delete
+@views.route(
+    "/job/<string:job_id>/table/<string:table_name>/delete", methods=["POST"]
+)  # TODO Change post to delete
 def delete_table(job_id, table_name):
     session = Session()
-    table = session.query(Table).filter(Table.job_id == job_id, Table.table_name == table_name).first()
+    table = (
+        session.query(Table)
+        .filter(Table.job_id == job_id, Table.table_name == table_name)
+        .first()
+    )
     if table:
         table.deleted = True
-    else : 
+    else:
         t = Table(
             table_id=generate_uuid(),
             table_name=table_name,
@@ -378,5 +409,5 @@ def delete_table(job_id, table_name):
         session.add(t)
     session.commit()
     session.close()
-    flash(f'Table {table_name} deleted!')
-    return redirect(url_for('.jobs', job_id=job_id))
+    flash(f"Table {table_name} deleted!")
+    return redirect(url_for(".jobs", job_id=job_id))

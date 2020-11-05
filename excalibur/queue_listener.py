@@ -11,7 +11,7 @@ from werkzeug.datastructures import FileStorage
 from io import BytesIO
 import asyncio
 
-RECONNECT_DELAY = 10 # reconnect delay in seconds
+RECONNECT_DELAY = 10  # reconnect delay in seconds
 
 
 def get_file_urls(json_body):
@@ -34,29 +34,34 @@ def download_file(file_url):
 async def download_files(file_urls, agency_name):
     for url in file_urls:
         file, name = download_file(url)
-        content = FileStorage(stream=file, name=name, filename=name, content_type='application/pdf')
+        content = FileStorage(
+            stream=file, name=name, filename=name, content_type="application/pdf"
+        )
         create_files(content, agency_name=agency_name, url=url)
 
 
-def items_queue_callback(ch, method, properties, body): 
+def items_queue_callback(ch, method, properties, body):
     json_body = json.loads(body)
     print(f"here - {json_body}")
     file_urls, agency_name = get_file_urls(json_body)
     print(f"here - {file_urls}")
     if file_urls:
         asyncio.run(download_files(file_urls, agency_name))
- 
+
 
 def consume():
     print("consume")
     try:
         connection = pika.BlockingConnection(
-            pika.ConnectionParameters(host='localhost'))
+            pika.ConnectionParameters(host="localhost")
+        )
         channel = connection.channel()
 
         channel.queue_declare(queue="pdfs_queue", durable=True)
 
-        channel.basic_consume(queue='pdfs_queue', on_message_callback=items_queue_callback, auto_ack=True)
+        channel.basic_consume(
+            queue="pdfs_queue", on_message_callback=items_queue_callback, auto_ack=True
+        )
         channel.start_consuming()
     except KeyboardInterrupt:
         traceback.print_exc()
