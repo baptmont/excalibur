@@ -9,12 +9,14 @@ from .base_executor import BaseExecutor
 
 def execute_command(command):
     try:
+        print(command)
         subprocess.check_call(command, stderr=subprocess.STDOUT, close_fds=True)
     except FileNotFoundError:
         # TODO: PyInstaller does not package console_scripts
         # https://github.com/pyinstaller/pyinstaller/issues/305
         from ..cli import _run
 
+        print("FileNotFoundError found")
         task_name = command[-3]
         task_id = command[-1]
         _run(task_name, task_id)

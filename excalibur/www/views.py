@@ -18,14 +18,14 @@ from flask import (
     url_for,
     flash)
 
-from excalibur import exchanges
+from .table_builder import create_data, search_page_table, format_message
+from .. import exchanges
 from .. import configuration as conf
 from ..executors import get_default_executor
 from ..models import File, Rule, Job, Table
 from ..settings import Session
 from ..utils.file import mkdirs, allowed_filename, is_image_file, ocr_image
 from ..utils.metadata import generate_uuid, random_string
-from ..utils import data_frame_utils
 
 views = Blueprint("views", __name__)
 
@@ -276,60 +276,20 @@ def jobs(job_id):
     return jsonify(job_id=job_id)
 
 
-def create_data(job):
-    data = []
-    render_files = json.loads(job.render_files)
-    regex = r"page-(\d)+-table-(\d)+"
-    for k in sorted(render_files, key=lambda x: (int(re.split(regex, x)[1]), int(re.split(regex, x)[2])),):
-        if not table_is_deleted(k, job.job_id):
-            df = pd.read_json(render_files[k])
-            df = data_frame_utils.clean_data(df)
-            df = data_frame_utils.sort_data(df)
-            if table_is_reversed(k, job.job_id):
-                df = data_frame_utils.reverse_data(df)
-            columns = df.columns.values
-            records = df.to_dict("records")
-            route = '{} - {}'.format(*data_frame_utils.get_origin_and_destination(records))
-            data.append({"title": k, "columns": columns, "records": records, "route": route})
-    return data
-
-
-def table_is_reversed(table_title, job_id):
-    table_name = search_page_table(table_title)
-    session = Session()
-    table = session.query(Table).filter(Table.job_id == job_id, Table.table_name == table_name).first()
-    session.close()
-    return False if not table else table.reverse
-
-
-def table_is_deleted(table_title, job_id):
-    table_name = search_page_table(table_title)
-    session = Session()
-    table = session.query(Table).filter(Table.job_id == job_id, Table.table_name == table_name).first()
-    session.close()
-    return False if not table else table.deleted
-
-
-def search_page_table(value):
-    string = str(value) if value is not None else ""
-    regex = r"page-(\d)+-table-(\d)+"
-    table = re.search(regex, string)
-    if table:
-        return str(table.group(0))
-    else:
-        return ""
-
-
 def send_message(job_id, job):
     data = create_data(job)
     for item in data:
+        item["pdf_name"] = job.datapath
+        item["agency_name"] = job.agency_name
+        item["url"] = job.url
         if request.form[f'name_{search_page_table(item["title"] )}']:
             item["name"] = request.form[f'name_{search_page_table(item["title"] )}']
         if request.form.getlist(f'days_{search_page_table(item["title"] )}'):
             item["days"] = request.form.getlist(f'days_{search_page_table(item["title"] )}')
-        item["pdf_name"] = job.datapath
-        item["agency_name"] = job.agency_name
-        item["url"] = job.url
+        item["records"] = format_message(item)
+        item.pop('_days', None)  # clear private _days
+        item.pop('_records', None)  # clear private _records
+        item.pop('_df', None)  # clear private _dataframe
     message = pd.Series(data).to_json(orient='values')
     exchanges.publish(message)
     flash('Message Sent!')

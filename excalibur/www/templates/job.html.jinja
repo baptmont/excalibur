@@ -3,6 +3,14 @@
 {% block stylesheet %}
 {% endblock %}
 
+{% macro create_option(day, _days) -%}
+  {% if day in _days %}
+    <option selected="selected">{{day}}</option>
+  {% else %}
+    <option>{{day}}</option>
+  {% endif %}
+{%- endmacro %}
+
 {% block job %}
 {% if is_finished %}
   <div class="container mt-2">
@@ -46,7 +54,7 @@
                           </tr>
                         </thead>
                         <tbody>
-                          {% for record in d.records %}
+                          {% for record in d._records %}
                             <tr>
                               {% for column in d.columns %}
                               <td>{{ record[column] }}</td>
@@ -65,16 +73,16 @@
                       </div>
                       <div class="form-group">
                         <label for="exampleFormControlSelect1">Example select</label>
-                        <select multiple class="form-control" name="days_{{ search(d.title) }}"
-                            id="days_{{ search(d.title) }}">
-                          <option>Monday</option>
-                          <option>Tuesday</option>
-                          <option>Wednesday</option>
-                          <option>Thursday</option>
-                          <option>Friday</option>
-                          <option>Saturday</option>
-                          <option>Sunday</option>
-                          <option>Holiday</option>
+                        <select multiple class="form-control" style="overflow-y: auto" name="days_{{ search(d.title) }}"
+                            id="days_{{ search(d.title) }}" size=8>
+                          {{create_option("Monday",d._days)}}
+                          {{create_option("Tuesday",d._days)}}
+                          {{create_option("Wednesday",d._days)}}
+                          {{create_option("Thursday",d._days)}}
+                          {{create_option("Friday",d._days)}}
+                          {{create_option("Saturday",d._days)}}
+                          {{create_option("Sunday",d._days)}}
+                          {{create_option("Holiday",d._days)}}
                         </select>
                       </div>
                   </div>

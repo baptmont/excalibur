@@ -5,19 +5,20 @@ import re
 import glob
 import json
 import logging
-import subprocess
+import warnings
 import datetime as dt
 from PIL import Image, ImageChops
 
 import camelot
 import shutil
-from camelot.core import TableList
+from camelot import core
 from camelot.parsers import Lattice, Stream
+from camelot.utils import text_in_bbox
 from camelot.ext.ghostscript import Ghostscript
 from .exchanges import publish_new_file_message
 
 from . import configuration as conf
-from .models import File, Rule, Job
+from .models import File, Rule, Job, Table
 from .settings import Session
 from .utils.file import mkdirs
 from .utils.task import (
@@ -163,6 +164,95 @@ def delete_older_data(file):
     shutil.rmtree(jsonpath)
 
 
+def utf_to_html(self, path, **kwargs):
+    """Writes Table to an HTML file.
+
+    For kwargs, check :meth:`pandas.DataFrame.to_html`.
+
+    Parameters
+    ----------
+    path : str
+        Output filepath.
+
+    """
+    html_string = self.df.to_html(**kwargs)
+    with open(path, "w",encoding="utf-8") as file:
+        file.writelines('<meta charset="UTF-8">\n')
+        file.write(html_string)
+    
+core.Table.to_html = utf_to_html  # FIXME very hacky fix by changing dependecy code
+
+def _generate_columns_and_rows(self, table_idx, tk):
+    # select elements which lie within table_bbox
+    t_bbox = {}
+    t_bbox["horizontal"] = text_in_bbox(tk, self.horizontal_text)
+    t_bbox["vertical"] = text_in_bbox(tk, self.vertical_text)
+
+    t_bbox["horizontal"].sort(key=lambda x: (-x.y0, x.x0))
+    t_bbox["vertical"].sort(key=lambda x: (x.x0, -x.y0))
+
+    self.t_bbox = t_bbox
+
+    text_x_min, text_y_min, text_x_max, text_y_max = self._text_bbox(self.t_bbox)
+    rows_grouped = self._group_rows(self.t_bbox["horizontal"], row_tol=self.row_tol)
+    rows = self._join_rows(rows_grouped, text_y_max, text_y_min)
+    elements = [len(r) for r in rows_grouped]
+
+    if self.columns is not None and self.columns[table_idx] != "":
+        # user has to input boundary columns too
+        # take (0, pdf_width) by default
+        # similar to else condition
+        # len can't be 1
+        cols = self.columns[table_idx].split(",")
+        cols = [float(c) for c in cols]
+        cols.insert(0, text_x_min)
+        cols.append(text_x_max)
+        cols = [(cols[i], cols[i + 1]) for i in range(0, len(cols) - 1)]
+    else:
+        # calculate mode of the list of number of elements in
+        # each row to guess the number of columns
+        ncols = max(set(elements))
+        if ncols == 1:
+            # if mode is 1, the page usually contains not tables
+            # but there can be cases where the list can be skewed,
+            # try to remove all 1s from list in this case and
+            # see if the list contains elements, if yes, then use
+            # the mode after removing 1s
+            elements = list(filter(lambda x: x != 1, elements))
+            if len(elements):
+                ncols = max(set(elements))
+            else:
+                warnings.warn(
+                    f"No tables found in table area {table_idx + 1}"
+                )
+        cols = [(t.x0, t.x1) for r in rows_grouped if len(r) == ncols for t in r]
+        cols = self._merge_columns(sorted(cols), column_tol=self.column_tol)
+        inner_text = []
+        for i in range(1, len(cols)):
+            left = cols[i - 1][1]
+            right = cols[i][0]
+            inner_text.extend(
+                [
+                    t
+                    for direction in self.t_bbox
+                    for t in self.t_bbox[direction]
+                    if t.x0 > left and t.x1 < right
+                ]
+            )
+        outer_text = [
+            t
+            for direction in self.t_bbox
+            for t in self.t_bbox[direction]
+            if t.x0 > cols[-1][1] or t.x1 < cols[0][0]
+        ]
+        inner_text.extend(outer_text)
+        cols = self._add_columns(cols, inner_text, self.row_tol)
+        cols = self._join_columns(cols, text_x_min, text_x_max)
+    return cols, rows
+
+Stream._generate_columns_and_rows = _generate_columns_and_rows  # FIXME very hacky fix by changing dependecy code
+
+
 def extract(job_id):
     try:
         session = Session()
@@ -180,6 +270,7 @@ def extract(job_id):
         for p in pages:
             kwargs = pages[p]
             kwargs.update(rule_options)
+            kwargs = create_respective_columns(kwargs) if flavor.lower() == "stream" else kwargs
             parser = (
                 Lattice(**kwargs) if flavor.lower() == "lattice" else Stream(**kwargs)
             )
@@ -187,7 +278,7 @@ def extract(job_id):
             for _t in t:
                 _t.page = int(p)
             tables.extend(t)
-        tables = TableList(tables)
+        tables = core.TableList(tables)
 
         froot, fext = os.path.splitext(file.filename)
         datapath = os.path.dirname(file.filepath)
@@ -217,3 +308,15 @@ def extract(job_id):
         session.close()
     except Exception as e:
         logging.exception(e)
+
+
+def create_respective_columns(kwargs):
+    if(kwargs["columns"] != None):
+        cols = []
+        for area in kwargs["table_areas"]:
+            x1, _, x2, _ = area.split(",")
+            x1 = float(x1)
+            x2 = float(x2)
+            cols.append(",".join([column for column in kwargs["columns"][0].split(",") if float(column)>x1 and float(column)<x2]))
+        kwargs["columns"] = cols
+    return kwargs

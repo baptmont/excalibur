@@ -92,18 +92,22 @@ const onSavedRuleClick = function (e) {
             if ('table_areas' in ruleOptions['pages'][page]) {
               let tableAreas = [];
               const table_areas = ruleOptions['pages'][page]['table_areas'];
-              table_areas.forEach(function (t) {
-                tableAreas.push(t.split(',').map(Number));
-              })
-              renderTableAreas(page, tableAreas);
+              if(table_areas != undefined){
+                table_areas.forEach(function (t) {
+                  tableAreas.push(t.split(',').map(Number));
+                })
+                renderTableAreas(page, tableAreas);
+              }
             }
             if ('columns' in ruleOptions['pages'][page]) {
               let columnSeparators = [];
               const columns = ruleOptions['pages'][page]['columns'];
-              columns.forEach(function (c) {
-                columnSeparators.push(c.split(',').map(Number));
-              })
-              renderColumnSeparators(page, columnSeparators);
+              if(columns != undefined){
+                columns.forEach(function (c) {
+                  columnSeparators = columnSeparators.concat(c.split(',').map(Number));
+                })
+                renderColumnSeparators(page, columnSeparators);
+              }
             }
           }
         }
@@ -209,7 +213,7 @@ const getRuleOptions = function () {
     if (hasColumnSeparator) {
       let selectedSeparators = []
       $('#image-div-{0} > .draggable-column'.format(page)).each(function (id, col) {
-        selectedSeparators.push(($(col).offset().left - $(col).parent().offset().left) + ($(col).width() / 2));
+        selectedSeparators.push(($(col).offset().left - $(col).parent().offset().left));
       });
       ruleOptions['pages'][page]['columns'] = getColumnSeparators(page, selectedSeparators);
     } else {

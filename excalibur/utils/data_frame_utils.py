@@ -3,26 +3,24 @@ import re
 
 ignore_words = ["[Pp]artidas?", "[Pp]assage(m|ns)", "[Cc]hegadas?","DESIGNAÇÃO","designação","\(percurso sem parage(m|ns)\)"]
 ignore_expressions = ["^.{,2}$","^(.{,2}\\n)+.{,2}$","^\\n$"]
-stop_time_regex = re.compile(r'\d{1,2}(:|,)[0-5]\d')
+stop_time_regex = r'\d{1,2}(:|,)[0-5]\d' #TODO test after compile removed
 stop_regex = re.compile(r"[a-zA-Z]{3,}")
 
 def split_rows(df_series):
     series = df_series.str.strip().str.split('\\n', expand=True).stack().str.strip().reset_index(drop=True)
     return series
 
-def clean_data(df):
-    ignores_dict = {word:'' for word in ignore_words + ignore_expressions}
-    print(df.to_string())
-    df = df.replace(ignores_dict, regex=True)
+def clean_data(df, ignores_dict=None, split=True):
+    df = df.replace(ignores_dict, regex=True) if ignores_dict else df
     try:
-        df = pd.concat([split_rows(df[col]) for col in df], axis=1)
+        df = pd.concat([split_rows(df[col]) for col in df], axis=1) if split else df
+        df = df.replace({"\n":""})
         df = df.replace({"":pd.NaT})
     except Exception as e:
         print(e)
-    df.dropna(how='all',inplace=True, axis='index')
-    df.dropna(how='all',inplace=True, axis='columns')
+    df = df.dropna(how='all', axis='index').reset_index(drop=True)
+    df = df.dropna(how='all', axis='columns').reset_index(drop=True)
     df = df.replace({pd.NaT:"-"})
-    # df = df.apply(lambda x: split_rows(x,df), axis=0)
     return df
 
 def sort_data(df):
@@ -30,6 +28,7 @@ def sort_data(df):
     print("cols "+str(cols))
     if not cols.empty: #sort rows
         df = df.sort_values(by=list(cols))
+        df = df.reset_index(drop=True)
     else: #sort columns
         df = df # TODO sort columns
     return df
