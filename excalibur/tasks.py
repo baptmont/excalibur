@@ -7,7 +7,6 @@ import warnings
 import datetime as dt
 from PIL import Image, ImageChops
 
-import shutil
 from camelot import core
 from camelot.parsers import Lattice, Stream
 from camelot.utils import text_in_bbox
@@ -24,7 +23,7 @@ from .utils.task import get_pages, save_page, get_file_dim, get_image_dim
 def split(file_id):
     try:
         session = Session()
-        file = session.query(File).filter(File.file_id == file_id).first()
+        file: File = session.query(File).filter(File.file_id == file_id).first()
         extract_pages, total_pages = get_pages(file.filepath, file.pages)
 
         (
@@ -85,7 +84,7 @@ def split(file_id):
         for old_file in session.query(File).filter(
             File.file_id != file_id,
             File.filename == file.filename,
-            File.same_as is None,
+            File.same_as.is_(None),
         ):
             file_is_new = file_is_new and iterate_paths(imagepaths, old_file)
             same_as = same_as if file_is_new else old_file
@@ -120,7 +119,6 @@ def get_file_name_from_path(path):
 
 def iterate_paths(imagepaths, old_file):
     for path1 in imagepaths.values():
-        print(old_file.imagepaths)
         if old_file.imagepaths is None:
             return True
         path2 = [
@@ -158,12 +156,6 @@ def clone_old_file(file, old_file):
     file.same_as = old_file.file_id
     file.is_ignored = True
     file.deleted_folder = False
-
-
-def delete_older_data(file):
-    datapath = os.path.dirname(file.filepath)
-    jsonpath = os.path.join(datapath, "json")
-    shutil.rmtree(jsonpath)
 
 
 def utf_to_html(self, path, **kwargs):
@@ -264,7 +256,6 @@ def extract(job_id):
         job = session.query(Job).filter(Job.job_id == job_id).first()
         rule = session.query(Rule).filter(Rule.rule_id == job.rule_id).first()
         file = session.query(File).filter(File.file_id == job.file_id).first()
-        # delete_older_data(file)
 
         rule_options = json.loads(rule.rule_options)
         flavor = rule_options.pop("flavor")

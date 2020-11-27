@@ -34,37 +34,40 @@ def _create_data(job, postProcessor=DefaultPostProcessor):
         render_files,
         key=lambda x: (int(re.split(regex, x)[1]), int(re.split(regex, x)[2])),
     ):
-        count = 1
-        agency_name = job.agency_name
-        df = pd.read_json(render_files[k])
-        pp = postProcessor(agency_name)
-        pp = (
-            pp
-            if pp.is_aplicable_to_dataframe(df)
-            else DefaultPostProcessor(agency_name)
-        )
-        print(df)
-        df = pp.process(df)
-        df_dict = df if isinstance(df, list) else [("None", df)]
-        for days, df in df_dict:
-            title = f"{k}.{count}" if days != "None" else k  # update name of table
-            if not table_is_deleted(title, job.job_id):
-                count += 1
-                if table_is_reversed(title, job.job_id):
-                    df = data_frame_utils.reverse_data(df)
-                columns = df.columns.values
-                records = df.to_dict("records")
-                route = pp.route_name(df)
-                data.append(
-                    {
-                        "title": title,
-                        "columns": columns,
-                        "_records": records,
-                        "route": route,
-                        "_days": days,
-                        "_df": df,
-                    }
-                )
+        try:
+            count = 1
+            agency_name = job.agency_name
+            df = pd.read_json(render_files[k])
+            pp = postProcessor(agency_name)
+            pp = (
+                pp
+                if pp.is_aplicable_to_dataframe(df)
+                else DefaultPostProcessor(agency_name)
+            )
+            df = pp.process(df)
+            df_dict = df if isinstance(df, list) else [("None", df)]
+            for days, df in df_dict:
+                title = f"{k}.{count}" if days != "None" else k  # update name of table
+                if not table_is_deleted(title, job.job_id):
+                    count += 1
+                    if table_is_reversed(title, job.job_id):
+                        df = data_frame_utils.reverse_data(df)
+                    columns = df.columns.values
+                    records = df.to_dict("records")
+                    route = pp.route_name(df)
+                    data.append(
+                        {
+                            "title": title,
+                            "columns": columns,
+                            "_records": records,
+                            "route": route,
+                            "_days": days,
+                            "_df": df,
+                        }
+                    )
+        except IndexError as e:
+            print("Timetable lacks information")
+            print(e)
     return data
 
 

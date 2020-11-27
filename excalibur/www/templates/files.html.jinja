@@ -3,12 +3,12 @@
 {% block stylesheet %}
 {% endblock %}
 
-{% macro render_pdfs_table(file_list) -%}
+{% macro render_pdfs_table(file_list, table_id) -%}
     <div class="card depth-1 mb-5">
     <div class="card-body p-0">
         <div class="row">
             <div class="col-md-12">
-                <table class="table text-left table-borderless table-hover mb-0">
+                <table id= {{ table_id }} class="table text-left table-borderless table-hover mb-0">
                   <thead class="thead-light">
                     <tr>
                       <th scope="col">#</th>
@@ -65,7 +65,7 @@
 
   <form class="mb-5">
     <div class="row align-items-center">
-      <div class="col-md-6 col-sm-6 col-xs-12">
+      <div class="col-md-4 col-sm-4 col-xs-12">
         <div class="input-group">
           <div class="custom-file uploadFile">
             <input type="file" class="uploadFile__input" id="file" name="file" accept="application/pdf, image/jpeg, image/png"> 
@@ -73,7 +73,13 @@
           </div>
         </div>
       </div>
-      <div class="col-md-6 col-sm-6 col-xs-12 py-2">
+      <div class="col-md-4 col-sm-4 col-xs-12 py-2">
+        <label for="pages">Agency</label>
+        <div class="input-group">
+          <input type="text" class="form-control" id="agency" placeholder="Agency name">
+        </div>
+      </div>
+      <div class="col-md-4 col-sm-4 col-xs-12 py-2">
         <label for="pages">Page numbers (example inputs: 1,3 or 5-8 or 1-end or all)</label>
         <div class="input-group">
           <input type="text" class="form-control" id="pages" placeholder="Comma-separated page numbers to extract tables from." value="all">
@@ -92,7 +98,7 @@
   </form>
   <h5 class="card-title py-3 mb-0 text-dark font-weight-bold">Files uploaded</h5>
 
-  {% call(file) render_pdfs_table(files_response) %}
+  {% call(file) render_pdfs_table(files_response, "new_data") %}
     <td style="width:10%"><a href="/workspaces/{{ file.file_id }}" class="btn btn-sm btn-outline-success" role="button">Extract</a></td>
     {% if not file.job_id %}
       <form action = "/ignore" method = "POST">
@@ -106,7 +112,7 @@
 
   <h5 class="card-title py-3 mb-0 text-dark font-weight-bold">Files extracted</h5>
 
-  {% call(file) render_pdfs_table(files_checked_response) %}
+  {% call(file) render_pdfs_table(files_checked_response, "read_data") %}
     <td style="width:10%"><a href="/workspaces/{{ file.file_id }}" class="btn btn-sm btn-outline-success" role="button">Extract Again</a></td>
     {% if file.job_id %}
       <td style="width:10%"><a href="/jobs/{{ file.job_id }}" class="btn btn-sm btn-outline-primary" role="button">Download</a></td>
@@ -117,7 +123,7 @@
 
   <h5 class="card-title py-3 mb-0 text-dark font-weight-bold">Files ignored</h5>
 
-  {% call(file) render_pdfs_table(files_ignored_response) %}
+  {% call(file) render_pdfs_table(files_ignored_response, "ignored_data") %}
     <td style="width:10%"></td>
     <form action = "/unignore" method = "POST">
       <input type="hidden" name="file_id" value="{{ file.file_id }}">

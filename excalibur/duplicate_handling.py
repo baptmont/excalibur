@@ -13,7 +13,7 @@ def handle_duplicate_pdfs():
         session = Session()
         print("Running duplication handling")
         for file in session.query(File).filter(
-            File.same_as is not None, File.deleted_folder is False
+            File.same_as.isnot(None), File.deleted_folder.is_(False)
         ):
             try:
                 delete_added_pdf_if_duplicated(file)
@@ -37,4 +37,4 @@ def delete_added_pdf_if_duplicated(file):
         path_list = re.split("(\\\\|/)", file.filepath)[:-2]
         folder_path = "/".join(path_list)
         shutil.rmtree(folder_path)
-        print(f"Files removed for {file.file_id}")
+        print(f"Files removed for {folder_path}")

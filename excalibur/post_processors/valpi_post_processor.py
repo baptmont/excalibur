@@ -24,7 +24,7 @@ class ValpiPostProcessor(PostProcessor):
         re.compile("domingo", re.IGNORECASE),
     ]
 
-    ignore_words = ["LINHA", "Observações", "Nº Horário", "X Y"]
+    ignore_words = ["LINHA", "Observações", "Nº Horário", "X Y", "Horário Nº"]
 
     def process(self, df):
         self._create_route_name(df.iloc[0])  # get route row
@@ -38,7 +38,9 @@ class ValpiPostProcessor(PostProcessor):
         df = data_frame_utils.clean_data(
             df, ignores_dict=ignores_dict, split=False
         )  # remove empty rows and cols without splitting at "\n"s
-        has_words = df.applymap(lambda x: bool(re.search("[A-Za-z]+", x))).any(
+        has_words = df.applymap(
+            lambda x: bool(re.search(data_frame_utils.stop_regex, x))
+        ).any(
             axis="columns"
         )  # check the rows with text
         df = df[has_words]  # boolean indexing to filter rows
@@ -75,6 +77,9 @@ class ValpiPostProcessor(PostProcessor):
 
         df = df[1:].reset_index(drop=True)  # remove first row (service row)
         stops = df.iloc[:, 0]  # get stops column
+        is_duplicate = stops.duplicated()
+        stops = stops.where(~is_duplicate, stops + " - B")
+
         df = df.drop(df.columns[0], axis="columns")
         df.columns = range(df.shape[1])
 
@@ -92,8 +97,11 @@ class ValpiPostProcessor(PostProcessor):
                     :, lines == line
                 ]  # get sub set of columns where lines is line
                 temp_df.insert(0, "Stops", stops)  # add stops column
+                temp_df = temp_df.reset_index(drop=True)
+                temp_df.columns = range(temp_df.shape[1])
                 temp_df.line = line
-                result.append((service, temp_df))  # add dataframe
+                if len(temp_df.columns) > 1:
+                    result.append((service, temp_df))  # add dataframe
             cont += 1
             service = next(service_gen)  # get next result
         return result
@@ -106,12 +114,10 @@ class ValpiPostProcessor(PostProcessor):
         prev_index = 0
         for index, value in temp_df.items():
             if value is False:  # service change
-                print("1")
                 sub_df = df.iloc[:, prev_index:index]
                 df_list.append(sub_df)  # add previous service with sliced dataframe
                 prev_index = index
             if index == temp_df.size - 1:  # set last service since dataframe is ending
-                print("2")
                 sub_df = df.iloc[:, prev_index:]
                 df_list.append(sub_df)  # add last service with sliced dataframe
         return df_list

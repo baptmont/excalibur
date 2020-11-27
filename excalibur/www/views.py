@@ -34,6 +34,9 @@ def index():
     return redirect(url_for("views.files"))
 
 
+MAX_IGNORED_FILES = 500
+
+
 @views.route("/files", methods=["GET", "POST"])
 def files():
     if request.method == "GET":
@@ -41,7 +44,12 @@ def files():
         files_checked_response = []
         files_ignored_response = []
         session = Session()
-        for file in session.query(File).order_by(File.uploaded_at.desc()).all():
+        for file in (
+            session.query(File)
+            .filter(File.is_ignored.is_(False))
+            .order_by(File.uploaded_at.desc())
+            .all()
+        ):
             job = (
                 session.query(Job)
                 .filter(Job.file_id == file.file_id)
@@ -49,14 +57,32 @@ def files():
                 .first()
             )
 
-            response = (
-                files_ignored_response
-                if file.is_ignored
-                else files_checked_response
-                if job is not None
-                else files_response
-            )
+            response = files_checked_response if job is not None else files_response
             response.append(
+                {
+                    "file_id": file.file_id,
+                    "job_id": job.job_id if job is not None else "",
+                    "uploaded_at": file.uploaded_at.strftime("%Y-%m-%dT%H:%M:%S"),
+                    "filename": file.filename,
+                    "agency_name": file.agency_name,
+                    "same_as": file.same_as,
+                }
+            )
+        for file in (
+            session.query(File)
+            .filter(File.is_ignored.is_(True))
+            .order_by(File.uploaded_at.desc())
+            .limit(MAX_IGNORED_FILES)
+            .all()
+        ):
+            job = (
+                session.query(Job)
+                .filter(Job.file_id == file.file_id)
+                .order_by(Job.started_at.desc())
+                .first()
+            )
+
+            files_ignored_response.append(
                 {
                     "file_id": file.file_id,
                     "job_id": job.job_id if job is not None else "",
@@ -73,15 +99,14 @@ def files():
             files_checked_response=files_checked_response,
             files_ignored_response=files_ignored_response,
         )
-    print(f"here with {request}")
     file = request.files["file-0"]
-    file_id = create_files(file, pages=request.form["pages"])
+    file_id = create_files(
+        file, pages=request.form["pages"], agency_name=request.form["agency"]
+    )
     return jsonify(file_id=file_id)
 
 
 def create_files(file, pages="all", agency_name="", url=""):
-    print(str(file))
-    print(pages)
     if file and allowed_filename(file.filename):
         file_id = generate_uuid()
         uploaded_at = dt.datetime.now()
@@ -89,7 +114,6 @@ def create_files(file, pages="all", agency_name="", url=""):
         filepath = os.path.join(conf.PDFS_FOLDER, file_id)
         mkdirs(filepath)
         filepath = os.path.join(filepath, filename)
-        print(f"Path {filepath}")
         file.save(filepath)
 
         if is_image_file(file):
@@ -128,7 +152,6 @@ def workspaces(file_id):
     filedims, imagedims, detected_areas = ("null" for i in range(3))
     if file.has_image:
         imagepaths = json.loads(file.imagepaths)
-        print(imagepaths)
         for page in imagepaths:
             imagepaths[page] = imagepaths[page].replace(
                 os.path.join(conf.PROJECT_ROOT, "www"), ""
@@ -251,9 +274,6 @@ def jobs(job_id):
         rule = session.query(Rule).filter(Rule.rule_id == rule_id).first()
     session.close()
 
-    print(rule)
-    print(rule.rule_options) if rule_id else print("Rule empty")
-    print(rule_options)
     if not rule or Rule.rule_options != rule_options:
         rule_id = generate_uuid()
         created_at = dt.datetime.now()
@@ -329,7 +349,6 @@ def download():
         return send_message(job_id, job)
     else:
         datapath = os.path.join(job.datapath, f.lower())
-        print("path =" + datapath)
         zipfile = glob.glob(os.path.join(datapath, "*.zip"))[0]
 
         directory = os.path.join(os.getcwd(), datapath)
@@ -345,6 +364,7 @@ def ignore():
     session = Session()
     file = session.query(File).get(file_id)
     file.is_ignored = True
+    file.uploaded_at = dt.datetime.now()
     session.commit()
     session.close()
     return redirect("files")

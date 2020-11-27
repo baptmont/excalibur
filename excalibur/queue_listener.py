@@ -5,6 +5,7 @@ import requests
 import traceback
 from excalibur.www.views import create_files
 from werkzeug.datastructures import FileStorage
+from . import configuration as conf
 from io import BytesIO
 import asyncio
 
@@ -15,7 +16,6 @@ def get_file_urls(json_body):
     result_set = set()
     agency_name = ""
     for item in json_body:
-        print(f"item  - {item} and set {result_set}")
         result_set = result_set.union(set(item["file_urls"]))
         agency_name = item["agency_name"]
     return list(result_set), agency_name
@@ -39,9 +39,7 @@ async def download_files(file_urls, agency_name):
 
 def items_queue_callback(ch, method, properties, body):
     json_body = json.loads(body)
-    print(f"here - {json_body}")
     file_urls, agency_name = get_file_urls(json_body)
-    print(f"here - {file_urls}")
     if file_urls:
         asyncio.run(download_files(file_urls, agency_name))
 
@@ -50,7 +48,10 @@ def consume():
     print("consume")
     try:
         connection = pika.BlockingConnection(
-            pika.ConnectionParameters(host="localhost")
+            pika.URLParameters(
+                url=f'{conf.get("webserver", "rabbitmq_url")}\
+                    ?client_properties={str({"connection_name": "excalibur_listener"})}'
+            )
         )
         channel = connection.channel()
 

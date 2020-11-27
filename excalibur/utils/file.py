@@ -41,7 +41,6 @@ def ocr_image(filename):
         "-c",
         "pageseg_devanagari_split_strategy=0",
     ]
-    print(" ".join(args))
 
     executor = get_default_executor()
     executor.execute_async(args)

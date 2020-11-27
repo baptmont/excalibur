@@ -11,7 +11,8 @@ ignore_words = [
 ]
 ignore_expressions = ["^.{,2}$", "^(.{,2}\\n)+.{,2}$", "^\\n$"]
 stop_time_regex = r"\d{1,2}(:|,)[0-5]\d"  # TODO test after compile removed
-stop_regex = re.compile(r"[a-zA-Z]{3,}")
+stop_time_regex_single_digit = r"^(\d{1}(:|,)[0-5]\d)"
+stop_regex = re.compile(r"[a-zA-ZÀ-ÿ]{3,}")
 
 
 def split_rows(df_series):
@@ -33,15 +34,17 @@ def clean_data(df, ignores_dict=None, split=True):
         df = df.replace({"": pd.NaT})
     except Exception as e:
         print(e)
-    df = df.dropna(how="all", axis="index").reset_index(drop=True)
-    df = df.dropna(how="all", axis="columns").reset_index(drop=True)
+    df = df.dropna(how="all", axis="index").reset_index(drop=True)  # remove empty rows
+    df = df.dropna(how="all", axis="columns").reset_index(
+        drop=True
+    )  # remove empty columns
     df = df.replace({pd.NaT: "-"})
     return df
 
 
 def sort_data(df):
+    df = df.replace({stop_time_regex_single_digit: r"0\1"}, regex=True)
     cols = df.columns[(df != df.replace(stop_time_regex, "", regex=True)).all()]
-    print("cols " + str(cols))
     if not cols.empty:  # sort rows
         df = df.sort_values(by=list(cols))
         df = df.reset_index(drop=True)

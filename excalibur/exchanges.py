@@ -1,9 +1,12 @@
 import json
 import pika
+from . import configuration as conf
 
 
 def publish(message):
-    connection = pika.BlockingConnection(pika.ConnectionParameters(host="localhost"))
+    connection = pika.BlockingConnection(
+        pika.URLParameters(url=conf.get("webserver", "rabbitmq_url"))
+    )
     channel = connection.channel()
 
     channel.exchange_declare(exchange="excalibur", exchange_type="direct", durable=True)
@@ -31,7 +34,9 @@ def create_email_queue_dto(file):
 def publish_new_file_message(file):
     message = json.dumps(create_email_queue_dto(file), default=str)
 
-    connection = pika.BlockingConnection(pika.ConnectionParameters(host="localhost"))
+    connection = pika.BlockingConnection(
+        pika.URLParameters(url=conf.get("webserver", "rabbitmq_url"))
+    )
     channel = connection.channel()
 
     channel.exchange_declare(exchange="excalibur", exchange_type="direct", durable=True)

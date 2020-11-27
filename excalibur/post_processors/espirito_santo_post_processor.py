@@ -63,15 +63,12 @@ class EspiritoSantoPostProcessor(PostProcessor):
         prev_index = 0
         services = self.service_to_days(services_df)
         for index, value in temp_df.items():
-            print(f"here {index} and {value}")
             if value is False:  # service change
-                print("1")
                 df_list.append(
                     (next(services), df[prev_index:index])
                 )  # add previous service with sliced dataframe
                 prev_index = index
             if index == temp_df.size - 1:  # set last service since dataframe is ending
-                print("2")
                 df_list.append(
                     (next(services), df[prev_index:])
                 )  # add last service with sliced dataframe

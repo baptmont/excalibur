@@ -7,7 +7,6 @@ from .base_executor import BaseExecutor
 
 def execute_command(command):
     try:
-        print(command)
         subprocess.check_call(command, stderr=subprocess.STDOUT, close_fds=True)
     except FileNotFoundError:
         # TODO: PyInstaller does not package console_scripts
